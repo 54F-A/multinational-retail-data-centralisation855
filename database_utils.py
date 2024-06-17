@@ -4,30 +4,32 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 class DatabaseConnector:
-    """A class that facilitates connection to a database.
+    """A class to connect to and interact with a PostgreSQL database.
 
     Attributes:
-        db_file (str): Stores the path to the YAML file.
-        conn: Stores a database connection object.
+        db_file (str): Path to the YAML file containing database credentials.
+        engine: SQLAlchemy Engine object for database connection.
+        conn: SQLAlchemy Connection object for database interaction.
     """
 
     def __init__(self, db_file):
-        """Initialise the DatabaseConnector with a database file.
+        """Initialises the DatabaseConnector instance with the path to the database credentials file.
 
-        Args: 
-            db_file (str): the path to the database file
+        Args:
+            db_file (str): Path to the YAML file containing database credentials.
         """
         self.db_file = db_file
         self.engine = None
         self.conn = None
 
     def read_db_creds(self, creds_file):
-        """Read database credentials from a YAML file.
+        """Reads database credentials from a YAML file.
 
         Args:
-            creds_file (str): Path to the YAML file.
-        Return: 
-            dict - database credentials
+            creds_file (str): Path to the YAML file containing database credentials.
+
+        Returns:
+            dict: Dictionary containing database credentials.
         """
         with open(creds_file, 'r') as file:
             try:
@@ -39,18 +41,35 @@ class DatabaseConnector:
                 print(f"Error reading YAML file: {e}")
                 return None
             
-    def init_db_engine(self):
-        """Initialise database engine.
+    def init_db_engine(self, db_type='source'):
+        """Initialises the database connection engine based on the provided database type.
+
+        Args:
+            db_type (str): Type of database to connect to. Default is 'source'.
+
+        Returns:
+            sqlalchemy.engine.base.Engine: SQLAlchemy Engine object.
         """
         creds = self.read_db_creds(self.db_file)
         if not creds:
             print("Failed to read database credentials.")
             return None
-        username = creds['RDS_USER']
-        password = creds['RDS_PASSWORD']
-        host = creds['RDS_HOST']
-        port = creds['RDS_PORT']
-        database = creds['RDS_DATABASE']
+        
+        if db_type == "source":
+            username = creds['RDS_USER']
+            password = creds['RDS_PASSWORD']
+            host = creds['RDS_HOST']
+            port = creds['RDS_PORT']
+            database = creds['RDS_DATABASE']
+        elif db_type == "local":
+            username = creds['LOCAL_USER']
+            password = creds['LOCAL_PASSWORD']
+            host = creds['LOCAL_HOST']
+            port = creds['LOCAL_PORT']
+            database = creds['LOCAL_DATABASE']
+        else:
+            return None
+
         db_url = f'postgresql://{username}:{password}@{host}:{port}/{database}'
 
         try:
@@ -64,7 +83,10 @@ class DatabaseConnector:
             return None
     
     def list_db_tables(self):
-        """List all tables in the connected database.
+        """Lists all tables in the connected database.
+
+        Returns:
+            list: List of table names in the database.
         """
         try:
             if not self.engine:
@@ -83,10 +105,16 @@ class DatabaseConnector:
             print(f"Error listing tables: {e}")
             return []
 
-    def upload_to_db(self, df, table_name):
-        """Upload DataFrame to the specified table in the database."""
+    def upload_to_db(self, df, table_name, db_type='source'):
+        """Uploads a DataFrame to a specified table in the database.
+
+        Args:
+            df (DataFrame): DataFrame to upload.
+            table_name (str): Name of the table to upload data into.
+            db_type (str): Type of database to upload data to. Default is 'source'.
+        """
         if not self.engine:
-            self.init_db_engine()
+            self.init_db_engine(db_type)
         if not self.engine:
             print("Database engine not initialized.")
             return
@@ -95,15 +123,8 @@ class DatabaseConnector:
         try:
             table = Table(table_name, metadata, autoload_with=self.engine)
             with self.engine.connect() as connection:
-                df.to_sql(table_name, con=connection, if_exists='append', index=False)
+                df.to_sql(table_name, con=connection, if_exists='replace', index=False)
+
             print(f"Data uploaded successfully to table '{table_name}'")
         except SQLAlchemyError as e:
             print(f"Error uploading data to table '{table_name}': {str(e)}")
-
-if __name__ == "__main__":
-    creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
-                                    'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
-    db_connector = DatabaseConnector(creds_file)
-    tables = db_connector.list_db_tables()
-
-    print("Existing tables:", ', '.join(tables))

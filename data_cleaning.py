@@ -5,10 +5,30 @@ import re
 
 
 class DataCleaning:
+    """A class to clean and preprocess user data extracted from a database.
+
+    Attributes:
+        data (DataFrame): The DataFrame containing user data extracted from the database.
+    """
+
     def __init__(self, data):
+        """Initializes the DataCleaning instance with the provided DataFrame.
+
+        Args:
+            data (DataFrame): The initial DataFrame containing user data extracted from the database.
+        """
         self.data = data
     
     def clean_user_data(self):
+        """Cleans and preprocesses the user data.
+
+        Performs the following:
+        1. Drops rows with missing values.
+        2. Converts 'date_of_birth' and 'join_date' columns to datetime format.
+        3. Maps 'country' names to 'country_code' using a predefined mapping.
+        4. Formats 'phone_number' based on 'country_code' using regex patterns.
+        5. Updates the 'data' attribute with the cleaned DataFrame.
+        """
         df = self.data.copy()
         df.dropna(inplace=True)
         df['date_of_birth'] = pd.to_datetime(df['date_of_birth'], errors='coerce')
@@ -18,41 +38,57 @@ class DataCleaning:
             'Germany': 'DE',
             'United Kingdom': 'GB',
             'United States': 'US'
-        }
+            }
         df['country_code'] = df['country'].map(country_mapping)
         df = df[df['country_code'].notna()]
 
         def format_phone_number(phone_number, country_code):
+            """Formats the phone number based on the country code using regex patterns.
+
+            Args:
+                phone_number (str): The original phone number.
+                country_code (str): The country code corresponding to the phone number.
+
+            Returns:
+                str or None: The formatted phone number if valid, otherwise None.
+            """
+            clean_number = re.sub(r'[^0-9+(]', '', phone_number)
+            gb_pattern = re.compile(r'^\+?44\s?\(?0?\)?(\d{2})\D?(\d{4})\D?(\d{0,4})$')
+            us_pattern = re.compile(r'^\+?1\s?\(?(\d{3})\)?\D?(\d{3})\D?(\d{4})$')
+            de_pattern = re.compile(r'^\+?49\s?\(?0?(\d{2})\D?(\d{3})\D?(\d{4})$')
+
             if country_code == 'GB':
-                if any(char not in '0123456789()+ ' for char in phone_number) or (len(re.sub(r'\D', '', phone_number)) > 13):
-                    return None
-                elif phone_number.startswith('0') or phone_number.startswith('(') or phone_number.startswith('+'):
-                    return phone_number
+                match = gb_pattern.match(clean_number)
+                if match and len(''.join(match.groups())) == 10:
+                    return f"+44 {match.group(1)} {match.group(2)} {match.group(3)}".strip()
                 else:
-                    phone_number
-            elif country_code == 'US': 
-                if len(re.sub(r'\D', '', phone_number)) > 12 or any(char not in '0123456789()+ ' for char in phone_number):
                     return None
-                elif phone_number.startswith('0') or phone_number.startswith('(') or phone_number.startswith('+'):
-                    return phone_number
+            elif country_code == 'US':
+                match = us_pattern.match(clean_number)
+                if match and len(''.join(match.groups())) == 10:
+                    return f"+1 {match.group(1)}-{match.group(2)}-{match.group(3)}"
                 else:
-                    return phone_number
-            elif country_code == 'DE': 
-                if len(re.sub(r'\D', '', phone_number)) > 12 or any(char not in '0123456789()+ ' for char in phone_number):
                     return None
-                elif phone_number.startswith('0') or phone_number.startswith('(') or phone_number.startswith('+'):
-                    return phone_number
+            elif country_code == 'DE':
+                match = de_pattern.match(clean_number)
+                if match and len(''.join(match.groups())) == 10:
+                    return f"+49 {match.group(1)} {match.group(2)} {match.group(3)}"
                 else:
-                    return phone_number
+                    return None
             else:
                 return None
 
         df['phone_number'] = df.apply(lambda row: format_phone_number(row['phone_number'], row['country_code']), axis=1)
-        
+        df = df.dropna(subset=['phone_number'])
         df.reset_index(drop=True, inplace=True)
         self.data = df
     
     def get_clean_data(self):
+        """Returns the cleaned DataFrame.
+
+        Returns:
+            DataFrame: The cleaned DataFrame containing processed user data.
+        """
         return self.data
 
 if __name__ == "__main__":
@@ -74,7 +110,7 @@ if __name__ == "__main__":
     print(f"\nCleaned DataFrame for table '{table_name}':")
     print(cleaned_df)
 
+    local_db_connector = database_utils.DatabaseConnector(creds_file)
+    local_db_connector.init_db_engine(db_type='local')
     upload_table = "dim_users"
-    db_connector.upload_to_db(cleaned_df, upload_table)
-
-    print(f"Cleaned data successfully uploaded to table: '{upload_table}'")
+    local_db_connector.upload_to_db(cleaned_df, upload_table, db_type='local')

@@ -4,27 +4,28 @@ import database_utils
 
 
 class DataExtractor:
-    """A class that extracts data from different data sources.
+    """A class to extract data from a relational database.
 
     Attributes:
-        db_connector: Stores an instance of database_utils.DatabaseConnector.
+        db_connector (DatabaseConnector): An instance of DatabaseConnector.
     """
 
     def __init__(self, db_connector):
-        """Initialises an instance (object) of the class.
+        """Initialises the DataExtractor instance with a database connector.
 
         Args:
-            db_connector: Assigns the value of db_connector to an instance attribute.
+            db_connector (DatabaseConnector): An instance of DatabaseConnector.
         """
         self.db_connector = db_connector
 
     def read_rds_table(self, table_name):
-        """Read data from the specified table into a pandas DataFrame.
+        """Reads data from a specified table in the database and returns it as a DataFrame.
 
         Args:
-            table_name (str): Name of the table to read from.
+            table_name (str): Name of the table.
+
         Returns:
-            pandas.DataFrame: DataFrame containing the table data.
+            DataFrame: DataFrame containing the data from the specified table.
         """
         engine = self.db_connector.init_db_engine()
         metadata = MetaData()
