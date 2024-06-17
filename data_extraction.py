@@ -1,6 +1,10 @@
 from sqlalchemy import select, MetaData, Table
 import pandas as pd
 import database_utils
+import tabula
+import tempfile
+import os
+import requests
 
 
 class DataExtractor:
@@ -10,7 +14,7 @@ class DataExtractor:
         db_connector (DatabaseConnector): An instance of DatabaseConnector.
     """
 
-    def __init__(self, db_connector):
+    def __init__(self, db_connector=None):
         """Initialises the DataExtractor instance with a database connector.
 
         Args:
@@ -37,6 +41,32 @@ class DataExtractor:
             df = pd.DataFrame(result_proxy.fetchall(), columns=result_proxy.keys())
 
         return df
+    
+    def retrieve_pdf_data(self, pdf_link):
+        """Extracts tables from a PDF document located at pdf_link and returns a DataFrame.
+
+        Args:
+            pdf_link (str): URL or local path to the PDF file.
+
+        Returns:
+            DataFrame: DataFrame containing the extracted data from the PDF.
+        """
+        if pdf_link.startswith('http'):
+            response = requests.get(pdf_link)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
+                tf.write(response.content)
+                temp_pdf_path = tf.name
+        else:
+            temp_pdf_path = pdf_link
+
+        dfs = tabula.read_pdf(temp_pdf_path, pages='all', multiple_tables=True)
+
+        if pdf_link.startswith('http'):
+            os.remove(temp_pdf_path)
+
+        df = pd.concat(dfs, ignore_index=True)
+
+        return df
 
 if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
@@ -51,3 +81,10 @@ if __name__ == "__main__":
     print("Tables in the database:")
     for table in tables:
         print(table)
+
+    data_extractor = DataExtractor()
+
+    pdf_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
+    df_from_pdf = data_extractor.retrieve_pdf_data(pdf_url)
+
+    print(df_from_pdf)
