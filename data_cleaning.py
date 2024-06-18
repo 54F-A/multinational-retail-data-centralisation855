@@ -83,18 +83,20 @@ class DataCleaning:
         df.reset_index(drop=True, inplace=True)
         self.data = df
     
-    def get_clean_data(self):
-        """Returns the cleaned DataFrame.
-
-        Returns:
-            DataFrame: The cleaned DataFrame containing processed user data.
-        """
-        return self.data
-    
     def clean_card_data(self):
+        """Cleans and preprocesses the card data.
+
+        Performs the following:
+        1. Drops rows with missing values.
+        2. Strips non-numeric characters from 'card_number'.
+        3. Validates 'card_number' lengths based on 'card_provider'.
+        4. Converts 'expiry_date' to datetime and filters out expired cards.
+        5. Converts 'date_payment_confirmed' to datetime and drops rows with invalid dates.
+        """
         df = self.data.copy()
         df.dropna(inplace=True)
         df['card_number'] = df['card_number'].apply(lambda x: re.sub(r'\D', '', str(x)))
+
         valid_lengths = {
             'Diners Club / Carte Blanche': [14],
             'American Express': [15],
@@ -109,6 +111,16 @@ class DataCleaning:
         }
 
         def is_valid_length(card_number, provider):
+            """Checks if the card number length is valid.
+
+            Args:
+                card_number (str): The card number to be validated.
+                provider (str): The card provider corresponding to the card number.
+
+            Returns:
+                bool: True if the card number length is valid for the given provider, otherwise False.
+            """
+            card_number = str(card_number)
             if provider in valid_lengths:
                 return len(card_number) in valid_lengths[provider]
             return False
@@ -124,6 +136,14 @@ class DataCleaning:
 
         df.reset_index(drop=True, inplace=True)
         self.data = df
+    
+    def get_clean_data(self):
+        """Returns the cleaned DataFrame.
+
+        Returns:
+            DataFrame: The cleaned DataFrame containing processed user data.
+        """
+        return self.data
 
 if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
@@ -150,10 +170,13 @@ if __name__ == "__main__":
     local_db_connector.upload_to_db(cleaned_df, upload_table, db_type='local')
 
     pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
-    card_df = data_cleaner.retrieve_pdf_data(pdf_link)
-    data_cleaner.data = card_df
+    card_df = data_extractor.retrieve_pdf_data(pdf_link)
+    data_cleaner = DataCleaning(card_df)
     data_cleaner.clean_card_data()
     cleaned_card_df = data_cleaner.get_clean_data()
 
     print(f"\nCleaned DataFrame from PDF:")
     print(cleaned_card_df)
+
+    card_upload_table = "dim_card_details"
+    local_db_connector.upload_to_db(cleaned_card_df, card_upload_table, db_type='local')
