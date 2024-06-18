@@ -90,6 +90,40 @@ class DataCleaning:
             DataFrame: The cleaned DataFrame containing processed user data.
         """
         return self.data
+    
+    def clean_card_data(self):
+        df = self.data.copy()
+        df.dropna(inplace=True)
+        df['card_number'] = df['card_number'].apply(lambda x: re.sub(r'\D', '', str(x)))
+        valid_lengths = {
+            'Diners Club / Carte Blanche': [14],
+            'American Express': [15],
+            'JCB 16 digit': [16],
+            'JCB 15 digit': [15],
+            'Maestro': [12, 13, 19],
+            'Mastercard': [16],
+            'Discover': [16],
+            'VISA 16 digit': [16],
+            'VISA 13 digit': [13],
+            'VISA 19 digit': [19]
+        }
+
+        def is_valid_length(card_number, provider):
+            if provider in valid_lengths:
+                return len(card_number) in valid_lengths[provider]
+            return False
+
+        df = df[df.apply(lambda row: is_valid_length(row['card_number'], row['card_provider']), axis=1)]
+
+        df['expiry_date'] = pd.to_datetime(df['expiry_date'], format='%m/%y', errors='coerce')
+        current_date = pd.Timestamp.now()
+        df = df[df['expiry_date'] >= current_date]
+
+        df['date_payment_confirmed'] = pd.to_datetime(df['date_payment_confirmed'], errors='coerce')
+        df.dropna(subset=['date_payment_confirmed'], inplace=True)
+
+        df.reset_index(drop=True, inplace=True)
+        self.data = df
 
 if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
@@ -114,3 +148,12 @@ if __name__ == "__main__":
     local_db_connector.init_db_engine(db_type='local')
     upload_table = "dim_users"
     local_db_connector.upload_to_db(cleaned_df, upload_table, db_type='local')
+
+    pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
+    card_df = data_cleaner.retrieve_pdf_data(pdf_link)
+    data_cleaner.data = card_df
+    data_cleaner.clean_card_data()
+    cleaned_card_df = data_cleaner.get_clean_data()
+
+    print(f"\nCleaned DataFrame from PDF:")
+    print(cleaned_card_df)

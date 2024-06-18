@@ -43,10 +43,10 @@ class DataExtractor:
         return df
     
     def retrieve_pdf_data(self, pdf_link):
-        """Extracts tables from a PDF document located at pdf_link and returns a DataFrame.
+        """Extracts tables from a PDF document and returns a DataFrame.
 
         Args:
-            pdf_link (str): URL or local path to the PDF file.
+            pdf_link (str): URL to the PDF file.
 
         Returns:
             DataFrame: DataFrame containing the extracted data from the PDF.
@@ -83,7 +83,6 @@ if __name__ == "__main__":
         print(table)
 
     data_extractor = DataExtractor()
-
     pdf_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
     df_from_pdf = data_extractor.retrieve_pdf_data(pdf_url)
 
