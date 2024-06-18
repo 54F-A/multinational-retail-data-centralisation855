@@ -67,6 +67,29 @@ class DataExtractor:
         df = pd.concat(dfs, ignore_index=True)
 
         return df
+    
+    def list_number_of_stores(self, endpoint, headers):
+        """Retrieves the number of stores from the API.
+
+        Args:
+            endpoint (str): Endpoint URL to retrieve the number of stores.
+            headers (dict): Dictionary containing headers for the API request.
+
+        Returns:
+            int: Number of stores.
+        """
+        response = requests.get(endpoint, headers=headers)
+
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                return int(data['number_stores'])
+            except KeyError:
+                print(f"Unexpected JSON structure: {data}")
+                return None
+        else:
+            print(f"Failed to retrieve number of stores. Status code: {response.status_code}")
+            return None
 
 if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
@@ -87,3 +110,13 @@ if __name__ == "__main__":
     df_from_pdf = data_extractor.retrieve_pdf_data(pdf_url)
 
     print(df_from_pdf)
+
+    api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
+    api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
+
+    number_of_stores = data_extractor.list_number_of_stores(api_endpoint, api_headers)
+
+    if number_of_stores is not None:
+        print(f"Number of stores: {number_of_stores}")
+    else:
+        print("Failed to retrieve the number of stores.")
