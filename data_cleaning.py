@@ -83,6 +83,14 @@ class DataCleaning:
         df.reset_index(drop=True, inplace=True)
         self.data = df
     
+    def get_clean_data(self):
+        """Returns the cleaned DataFrame.
+
+        Returns:
+            DataFrame: The cleaned DataFrame containing processed user data.
+        """
+        return self.data
+    
     def clean_card_data(self):
         """Cleans and preprocesses the card data.
 
@@ -136,14 +144,18 @@ class DataCleaning:
 
         df.reset_index(drop=True, inplace=True)
         self.data = df
-    
-    def get_clean_data(self):
-        """Returns the cleaned DataFrame.
+
+    def clean_store_data(self):
+        """Cleans and preprocesses the store data retrieved from an API.
 
         Returns:
-            DataFrame: The cleaned DataFrame containing processed user data.
+            DataFrame: Cleaned DataFrame containing processed store data.
         """
-        return self.data
+        df = self.data.copy()
+        df.dropna(inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        self.data = df
+        return df
 
 if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
@@ -180,3 +192,21 @@ if __name__ == "__main__":
 
     card_upload_table = "dim_card_details"
     local_db_connector.upload_to_db(cleaned_card_df, card_upload_table, db_type='local')
+
+    api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
+    api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
+    data_extractor = DataExtractor()
+
+    stores_df = data_extractor.retrieve_stores_data(api_endpoint, api_headers)
+
+    if stores_df is not None:
+        data_cleaner = DataCleaning(stores_df)
+        cleaned_store_df = data_cleaner.clean_store_data()
+
+        print("\nCleaned Stores DataFrame:")
+        print(cleaned_store_df)
+    else:
+        print("Failed to retrieve stores data from the API.")
+
+    store_upload_table = "dim_store_details"
+    local_db_connector.upload_to_db(cleaned_store_df, store_upload_table, db_type='local')
