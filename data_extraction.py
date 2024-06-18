@@ -91,6 +91,31 @@ class DataExtractor:
             print(f"Failed to retrieve number of stores. Status code: {response.status_code}")
             return None
 
+    def retrieve_stores_data(self, endpoint, headers):
+        """Retrieves store from the API endpoint and saves into a pandas DataFrame.
+
+        Args:
+            endpoint (str): Endpoint URL to retrieve the number of stores.
+            headers (dict): Dictionary containing headers for the API request.
+
+        Returns:
+            DataFrame: DataFrame containing the stores metadata.
+        """
+        response = requests.get(endpoint, headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+                
+            if 'number_stores' in data:
+                df = pd.DataFrame([data])
+                return df
+            else:
+                print("No 'number_stores' key found in JSON data.")
+                return None
+        else:
+            print(f"Failed to retrieve stores metadata. Status code: {response.status_code}")
+            return None
+
 if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
                  'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
@@ -120,3 +145,11 @@ if __name__ == "__main__":
         print(f"Number of stores: {number_of_stores}")
     else:
         print("Failed to retrieve the number of stores.")
+    
+    stores_df = data_extractor.retrieve_stores_data(api_endpoint, api_headers)
+
+    if stores_df is not None:
+        print("Stores DataFrame:")
+        print(stores_df)
+    else:
+        print("Failed to retrieve stores metadata.")
