@@ -82,14 +82,7 @@ class DataCleaning:
         df = df.dropna(subset=['phone_number'])
         df.reset_index(drop=True, inplace=True)
         self.data = df
-    
-    def get_clean_data(self):
-        """Returns the cleaned DataFrame.
-
-        Returns:
-            DataFrame: The cleaned DataFrame containing processed user data.
-        """
-        return self.data
+        return df
     
     def clean_card_data(self):
         """Cleans and preprocesses the card data.
@@ -144,6 +137,7 @@ class DataCleaning:
 
         df.reset_index(drop=True, inplace=True)
         self.data = df
+        return df
 
     def clean_store_data(self):
         """Cleans and preprocesses the store data retrieved from an API.
@@ -165,13 +159,8 @@ if __name__ == "__main__":
     data_extractor = DataExtractor(db_connector)
     table_name = "legacy_users"
     df = data_extractor.read_rds_table(table_name)
-
-    print(f"\nOriginal DataFrame for table '{table_name}':")
-    print(df)
-
     data_cleaner = DataCleaning(df)
-    data_cleaner.clean_user_data()
-    cleaned_df = data_cleaner.get_clean_data()
+    cleaned_df = data_cleaner.clean_user_data()
 
     print(f"\nCleaned DataFrame for table '{table_name}':")
     print(cleaned_df)
@@ -184,8 +173,7 @@ if __name__ == "__main__":
     pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
     card_df = data_extractor.retrieve_pdf_data(pdf_link)
     data_cleaner = DataCleaning(card_df)
-    data_cleaner.clean_card_data()
-    cleaned_card_df = data_cleaner.get_clean_data()
+    cleaned_card_df = data_cleaner.clean_card_data()
 
     print(f"\nCleaned DataFrame from PDF:")
     print(cleaned_card_df)
