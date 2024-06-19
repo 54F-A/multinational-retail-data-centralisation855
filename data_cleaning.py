@@ -12,7 +12,7 @@ class DataCleaning:
     """
 
     def __init__(self, data):
-        """Initializes the DataCleaning instance with the provided DataFrame.
+        """Initialises the DataCleaning instance with the provided DataFrame.
 
         Args:
             data (DataFrame): The initial DataFrame containing user data extracted from the database.
@@ -150,8 +150,67 @@ class DataCleaning:
         df.reset_index(drop=True, inplace=True)
         self.data = df
         return df
+    
+    def convert_product_weights(self, products_df):
+        """Converts product weight to kg.
+
+        Args:
+            products_df (DataFrame): DataFrame containing product data with weight column.
+
+        Returns:
+            DataFrame: Cleaned DataFrame with weights converted to kg.
+        """
+        def convert_weight(weight):
+            if isinstance(weight, str):
+                weight = weight.lower().strip()
+                if 'kg' in weight:
+                    return round(float(re.sub(r'[^\d.]', '', weight)), 2)
+                elif 'g' in weight:
+                    return round(float(re.sub(r'[^\d.]', '', weight)) / 1000, 2)
+                elif 'ml' in weight:
+                    return round(float(re.sub(r'[^\d.]', '', weight)) / 1000, 2)
+                elif 'lb' in weight:
+                    return round(float(re.sub(r'[^\d.]', '', weight)) * 0.453592, 2)
+                elif 'oz' in weight:
+                    return round(float(re.sub(r'[^\d.]', '', weight)) * 0.0283495, 2)
+                else:
+                    return None
+                
+            return weight
+
+        products_df['weight_kg'] = products_df['weight'].apply(convert_weight)
+        products_df.drop(columns=['weight'], inplace=True)
+        products_df.rename(columns={'weight_kg': 'weight'}, inplace=True)
+
+        return products_df
+    
+    def clean_products_data(self, products_df):
+        """Cleans the product data DataFrame.
+
+        Args:
+            products_df (DataFrame): DataFrame containing product data.
+
+        Returns:
+            DataFrame: Cleaned DataFrame with erroneous values removed.
+        """
+        df = products_df.copy()
+
+        df.dropna(inplace=True)
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
+        if 'price' in df.columns:
+            df['price'] = pd.to_numeric(df['price'], errors='coerce')
+        
+        if 'weight' in df.columns:
+            df['weight'] = pd.to_numeric(df['weight'], errors='coerce')
+        
+        df.reset_index(drop=True, inplace=True)
+
+        return df
 
 if __name__ == "__main__":
+    """DataFrame from a source Database.
+    """
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
                                   'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
     db_connector = database_utils.DatabaseConnector(creds_file)
@@ -159,28 +218,40 @@ if __name__ == "__main__":
     data_extractor = DataExtractor(db_connector)
     table_name = "legacy_users"
     df = data_extractor.read_rds_table(table_name)
-    data_cleaner = DataCleaning(df)
-    cleaned_df = data_cleaner.clean_user_data()
+    
+    if df is not None:
+        data_cleaner = DataCleaning(df)
+        cleaned_df = data_cleaner.clean_user_data()
 
-    print(f"\nCleaned DataFrame for table '{table_name}':")
-    print(cleaned_df)
+        print(f"\nCleaned DataFrame for table '{table_name}':")
+        print(cleaned_df)
+    else:
+        print("Failed to retrieve data from the table.")
 
     local_db_connector = database_utils.DatabaseConnector(creds_file)
     local_db_connector.init_db_engine(db_type='local')
     upload_table = "dim_users"
     local_db_connector.upload_to_db(cleaned_df, upload_table, db_type='local')
 
+    """DataFrame from a pdf file.
+    """
     pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
     card_df = data_extractor.retrieve_pdf_data(pdf_link)
-    data_cleaner = DataCleaning(card_df)
-    cleaned_card_df = data_cleaner.clean_card_data()
 
-    print(f"\nCleaned DataFrame from PDF:")
-    print(cleaned_card_df)
+    if card_df is not None:
+        data_cleaner = DataCleaning(card_df)
+        cleaned_card_df = data_cleaner.clean_card_data()
+
+        print(f"\nCleaned DataFrame from PDF:")
+        print(cleaned_card_df)
+    else:
+        print("Failed to retrieve card data from the pdf.")
 
     card_upload_table = "dim_card_details"
     local_db_connector.upload_to_db(cleaned_card_df, card_upload_table, db_type='local')
 
+    """DataFrame from an API.
+    """
     api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
     api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
     data_extractor = DataExtractor()
@@ -198,3 +269,21 @@ if __name__ == "__main__":
 
     store_upload_table = "dim_store_details"
     local_db_connector.upload_to_db(cleaned_store_df, store_upload_table, db_type='local')
+
+    """DataFrame from an S3 address.
+    """
+    s3_address = "s3://data-handling-public/products.csv"
+    products_df = data_extractor.extract_from_s3(s3_address)
+
+    if products_df is not None:
+        data_cleaner = DataCleaning(products_df)
+        products_df = data_cleaner.convert_product_weights(products_df)
+        cleaned_products_df = data_cleaner.clean_products_data(products_df)
+
+        print("\nCleaned Products DataFrame:")
+        print(cleaned_products_df)
+    else:
+        print("Failed to retrieve products data from the s3 address.")
+
+    products_upload_table = "dim_products"
+    local_db_connector.upload_to_db(cleaned_products_df, products_upload_table, db_type='local')

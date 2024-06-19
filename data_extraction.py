@@ -164,7 +164,10 @@ if __name__ == "__main__":
     pdf_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
     df_from_pdf = data_extractor.retrieve_pdf_data(pdf_url)
 
-    print(df_from_pdf)
+    if df_from_pdf is not None:
+        print(f"Card Details: {df_from_pdf}")
+    else:
+        print("Failed to retrieve the card details.")
 
     """DataFrame from an API.
     """
@@ -191,5 +194,8 @@ if __name__ == "__main__":
     s3_address = "s3://data-handling-public/products.csv"
     products_df = data_extractor.extract_from_s3(s3_address)
 
-    print("Products DataFrame:")
-    print(products_df)
+    if products_df is not None:
+        print("Products DataFrame:")
+        print(products_df)
+    else:
+        print("Failed to retrieve products data.")
