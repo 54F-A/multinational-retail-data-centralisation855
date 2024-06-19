@@ -5,6 +5,8 @@ import tabula
 import tempfile
 import os
 import requests
+import boto3
+from urllib.parse import urlparse
 
 
 class DataExtractor:
@@ -115,8 +117,34 @@ class DataExtractor:
         else:
             print(f"Failed to retrieve stores metadata. Status code: {response.status_code}")
             return None
+    
+    def extract_from_s3(self, s3_address):
+        """Extracts data from S3 bucket and returns it as a DataFrame.
+
+        Args:
+            s3_address (str): S3 address to the csv file.
+
+        Returns:
+            DataFrame: DataFrame containing the data from the S3 address.
+        """
+        s3 = boto3.client('s3')
+
+        parsed_url = urlparse(s3_address)
+        bucket_name = parsed_url.netloc
+        key = parsed_url.path.lstrip('/')
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tf:
+            temp_csv_path = tf.name
+
+        s3.download_file(bucket_name, key, temp_csv_path)
+        df = pd.read_csv(temp_csv_path)
+        os.remove(temp_csv_path)
+
+        return df
 
 if __name__ == "__main__":
+    """DataFrame from a source Database.
+    """
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
                  'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
     db_connector = database_utils.DatabaseConnector(creds_file)
@@ -129,13 +157,17 @@ if __name__ == "__main__":
     print("Tables in the database:")
     for table in tables:
         print(table)
-
+    
+    """DataFrame from a pdf file.
+    """
     data_extractor = DataExtractor()
     pdf_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
     df_from_pdf = data_extractor.retrieve_pdf_data(pdf_url)
 
     print(df_from_pdf)
 
+    """DataFrame from an API.
+    """
     api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
     api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
 
@@ -153,3 +185,11 @@ if __name__ == "__main__":
         print(stores_df)
     else:
         print("Failed to retrieve stores metadata.")
+    
+    """DataFrame from an S3 address.
+    """
+    s3_address = "s3://data-handling-public/products.csv"
+    products_df = data_extractor.extract_from_s3(s3_address)
+
+    print("Products DataFrame:")
+    print(products_df)
