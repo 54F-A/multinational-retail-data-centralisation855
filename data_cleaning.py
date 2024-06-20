@@ -213,13 +213,13 @@ if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
                                   'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
     db_connector = database_utils.DatabaseConnector(creds_file)
-
     data_extractor = DataExtractor(db_connector)
+
     table_name = "legacy_users"
-    df = data_extractor.read_rds_table(table_name)
+    legacy_users_df = data_extractor.read_rds_table(table_name)
     
-    if df is not None:
-        data_cleaner = DataCleaning(df)
+    if legacy_users_df is not None:
+        data_cleaner = DataCleaning(legacy_users_df)
         cleaned_df = data_cleaner.clean_user_data()
 
         print(f"\nCleaned DataFrame for table '{table_name}':")
@@ -244,7 +244,6 @@ if __name__ == "__main__":
     api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
     api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
     data_extractor = DataExtractor()
-
     stores_df = data_extractor.retrieve_stores_data(api_endpoint, api_headers)
 
     if stores_df is not None:
@@ -285,11 +284,17 @@ if __name__ == "__main__":
     products_upload_table = "dim_products"
     local_db_connector.upload_to_db(cleaned_products_df, products_upload_table, db_type='local')
 
-    """All tables in the local database."""
-    print("Tables in the local database.")
-    local_tables = local_db_connector.list_db_tables()
-    """All tables in the source database."""
+    print("Tables in the local database:")
+    local_db_connector.list_db_tables()
+
     AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
     AWS_RDS_db_connector.init_db_engine(db_type='source')
-    print("Tables in the AWS RDS database.")
-    AWS_RDS_tables = AWS_RDS_db_connector.list_db_tables()
+    data_extractor = DataExtractor(db_connector)
+
+    print("Tables in the AWS RDS database:")
+    AWS_RDS_db_connector.list_db_tables()
+
+    orders_table_name = "orders_table"
+    orders_table = data_extractor.read_rds_table(orders_table_name)
+    print("Orders Table:")
+    print(orders_table)

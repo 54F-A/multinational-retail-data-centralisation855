@@ -1,6 +1,5 @@
 from sqlalchemy import select, MetaData, Table
 import pandas as pd
-import database_utils
 import tabula
 import tempfile
 import os
