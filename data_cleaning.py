@@ -207,10 +207,9 @@ class DataCleaning:
         df.reset_index(drop=True, inplace=True)
 
         return df
-
+        
 if __name__ == "__main__":
-    """DataFrame from a source Database.
-    """
+    """DataFrame from a source Database."""
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
                                   'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
     db_connector = database_utils.DatabaseConnector(creds_file)
@@ -228,13 +227,7 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve data from the table.")
 
-    local_db_connector = database_utils.DatabaseConnector(creds_file)
-    local_db_connector.init_db_engine(db_type='local')
-    upload_table = "dim_users"
-    local_db_connector.upload_to_db(cleaned_df, upload_table, db_type='local')
-
-    """DataFrame from a pdf file.
-    """
+    """DataFrame from a pdf file."""
     pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
     card_df = data_extractor.retrieve_pdf_data(pdf_link)
 
@@ -247,11 +240,7 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve card data from the pdf.")
 
-    card_upload_table = "dim_card_details"
-    local_db_connector.upload_to_db(cleaned_card_df, card_upload_table, db_type='local')
-
-    """DataFrame from an API.
-    """
+    """DataFrame from an API."""
     api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
     api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
     data_extractor = DataExtractor()
@@ -267,11 +256,7 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve stores data from the API.")
 
-    store_upload_table = "dim_store_details"
-    local_db_connector.upload_to_db(cleaned_store_df, store_upload_table, db_type='local')
-
-    """DataFrame from an S3 address.
-    """
+    """DataFrame from an S3 address."""
     s3_address = "s3://data-handling-public/products.csv"
     products_df = data_extractor.extract_from_s3(s3_address)
 
@@ -285,5 +270,26 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve products data from the s3 address.")
 
+    """Upload all tables to the local database."""
+    local_db_connector = database_utils.DatabaseConnector(creds_file)
+    local_db_connector.init_db_engine(db_type='local')
+    upload_table = "dim_users"
+    local_db_connector.upload_to_db(cleaned_df, upload_table, db_type='local')
+
+    card_upload_table = "dim_card_details"
+    local_db_connector.upload_to_db(cleaned_card_df, card_upload_table, db_type='local')
+
+    store_upload_table = "dim_store_details"
+    local_db_connector.upload_to_db(cleaned_store_df, store_upload_table, db_type='local')
+
     products_upload_table = "dim_products"
     local_db_connector.upload_to_db(cleaned_products_df, products_upload_table, db_type='local')
+
+    """All tables in the local database."""
+    print("Tables in the local database.")
+    local_tables = local_db_connector.list_db_tables()
+    """All tables in the source database."""
+    AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
+    AWS_RDS_db_connector.init_db_engine(db_type='source')
+    print("Tables in the AWS RDS database.")
+    AWS_RDS_tables = AWS_RDS_db_connector.list_db_tables()

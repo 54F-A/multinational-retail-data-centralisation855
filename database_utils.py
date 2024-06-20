@@ -99,7 +99,7 @@ class DatabaseConnector:
             metadata.reflect(bind=self.engine)
             table_names = metadata.tables.keys()
             
-            print(f"Tables in the database: {list(table_names)}")
+            print(f"{list(table_names)}")
             return table_names
         except Exception as e:
             print(f"Error listing tables: {e}")
@@ -117,7 +117,7 @@ class DatabaseConnector:
             self.init_db_engine(db_type)
         if not self.engine:
             print("Database engine not initialized.")
-            return
+            return None
 
         metadata = MetaData()
         try:
