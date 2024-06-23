@@ -20,7 +20,7 @@ class DataCleaning:
         self.data = data
     
     def clean_user_data(self):
-        """Cleans and preprocesses the user data.
+        """Cleans the user data.
 
         Performs the following:
         1. Drops rows with missing values.
@@ -42,7 +42,7 @@ class DataCleaning:
             'Germany': 'DE',
             'United Kingdom': 'GB',
             'United States': 'US'
-            }
+        }
         df['country_code'] = df['country'].map(country_mapping)
         df = df[df['country_code'].notna()]
 
@@ -90,7 +90,7 @@ class DataCleaning:
         return df
     
     def clean_card_data(self):
-        """Cleans and preprocesses the card data.
+        """Cleans the card data.
 
         Performs the following:
         1. Drops rows with missing values.
@@ -130,10 +130,7 @@ class DataCleaning:
             Returns:
                 bool: True if the card number length is valid for the given provider, otherwise False.
             """
-            card_number = str(card_number)
-            if provider in valid_lengths:
-                return len(card_number) in valid_lengths[provider]
-            return False
+            return len(card_number) in valid_lengths.get(provider, [])
 
         df = df[df.apply(lambda row: is_valid_length(row['card_number'], row['card_provider']), axis=1)]
 
@@ -150,7 +147,7 @@ class DataCleaning:
         return df
 
     def clean_store_data(self):
-        """Cleans and preprocesses the store data retrieved from an API.
+        """Cleans the store data.
 
         Returns:
             DataFrame: Cleaned DataFrame containing processed store data.
@@ -175,29 +172,25 @@ class DataCleaning:
         def convert_weight(weight):
             if isinstance(weight, str):
                 weight = weight.lower().strip()
-                if 'kg' in weight:
-                    return round(float(re.sub(r'[^\d.]', '', weight)), 2)
-                elif 'g' in weight:
-                    return round(float(re.sub(r'[^\d.]', '', weight)) / 1000, 2)
-                elif 'ml' in weight:
-                    return round(float(re.sub(r'[^\d.]', '', weight)) / 1000, 2)
-                elif 'lb' in weight:
-                    return round(float(re.sub(r'[^\d.]', '', weight)) * 0.453592, 2)
-                elif 'oz' in weight:
-                    return round(float(re.sub(r'[^\d.]', '', weight)) * 0.0283495, 2)
-                else:
-                    return None
-                
-            return weight
-
-        products_df['weight_kg'] = products_df['weight'].apply(convert_weight)
-        products_df.drop(columns=['weight'], inplace=True)
-        products_df.rename(columns={'weight_kg': 'weight'}, inplace=True)
+                conversions = {
+                    'kg': 1,
+                    'g': 0.001,
+                    'ml': 0.001,
+                    'lb': 0.453592,
+                    'oz': 0.0283495
+                }
+                for unit, factor in conversions.items():
+                    if unit in weight:
+                        return round(float(re.sub(r'[^\d.]', '', weight)) * factor, 2)
+            return None
+        
+        products_df['weight'] = products_df['weight'].apply(convert_weight)
+        products_df.reset_index(drop=True, inplace=True)
 
         return products_df
     
     def clean_products_data(self, products_df):
-        """Cleans the product data DataFrame.
+        """Cleans the product data.
 
         Args:
             products_df (DataFrame): DataFrame containing product data.
@@ -220,8 +213,25 @@ class DataCleaning:
 
         return df
     
+    def clean_date_times_data(self):
+        """Cleans the date details data.
+
+        Performs the following:
+        1. Drops rows with missing values.
+
+        Returns:
+            DataFrame: Cleaned DataFrame containing processed date details data.
+        """
+        df = self.data.copy()
+
+        df.dropna(inplace=True) 
+        df.reset_index(drop=True, inplace=True)
+        self.data = df
+
+        return df
+
     def clean_orders_data(self):
-        """Cleans the orders table in RDS database.
+        """Cleans the orders data.
 
         Performs the following:
         1. Drops 'first_name', 'last_name' and '1' columns
@@ -237,15 +247,6 @@ class DataCleaning:
         self.data = df
 
         return df
-    
-    def clean_date_details_data(self):
-        df = self.data.copy()
-
-        df.dropna(inplace=True) 
-        df.reset_index(drop=True, inplace=True)
-        self.data = df
-
-        return df
         
 if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
@@ -253,7 +254,7 @@ if __name__ == "__main__":
     db_connector = database_utils.DatabaseConnector(creds_file)
     data_extractor = DataExtractor(db_connector)
 
-    """DataFrame from a source Database."""
+    """User data from a database table."""
     table_name = "legacy_users"
     legacy_users_df = data_extractor.read_rds_table(table_name)
     
@@ -266,7 +267,7 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve data from the table.")
 
-    """DataFrame from a pdf file."""
+    """Card data from a PDF file."""
     pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
     card_df = data_extractor.retrieve_pdf_data(pdf_link)
 
@@ -279,7 +280,7 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve card data from the pdf.")
 
-    """DataFrame from an API."""
+    """Stores data from an API."""
     api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
     api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
     data_extractor = DataExtractor()
@@ -294,7 +295,7 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve stores data from the API.")
 
-    """DataFrame from an S3 address."""
+    """Products data from an S3 bucket."""
     s3_address = "s3://data-handling-public/products.csv"
     products_df = data_extractor.extract_from_s3(s3_address)
 
@@ -308,17 +309,18 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve products data from the s3 address.")
 
+    """Date details data from an S3 bucket."""
     s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
-    date_details_df = data_extractor.extract_from_s3(s3_address)
+    date_times_df = data_extractor.extract_from_s3(s3_address)
 
-    if date_details_df is not None:
-        data_cleaner = DataCleaning(date_details_df)
-        cleaned_products_df = data_cleaner.clean_date_details_data(date_details_df)
+    if date_times_df is not None:
+        data_cleaner = DataCleaning(date_times_df)
+        cleaned_date_times_df = data_cleaner.clean_date_times_data()
 
-        print("\nCleaned Products DataFrame:")
-        print(date_details_df)
+        print("\nCleaned Date Details DataFrame:")
+        print(cleaned_date_times_df)
     else:
-        print("Failed to retrieve products data from the s3 address.")
+        print("Failed to retrieve stores data from the API.")
 
     AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
     AWS_RDS_db_connector.init_db_engine(db_type='source')
@@ -327,7 +329,7 @@ if __name__ == "__main__":
     table_name = "orders_table"
     orders_df = data_extractor.read_rds_table(table_name)
 
-    """DataFrame from AWS RDS database."""
+    """Orders data from an AWS RDS database."""
     if orders_df is not None:
         data_cleaner = DataCleaning(orders_df)
         cleaned_orders_df = data_cleaner.clean_orders_data()
@@ -352,6 +354,9 @@ if __name__ == "__main__":
 
     products_upload_table = "dim_products"
     local_db_connector.upload_to_db(cleaned_products_df, products_upload_table, db_type='local')
+
+    date_times_upload_table = "dim_date_times"
+    local_db_connector.upload_to_db(cleaned_date_times_df, date_times_upload_table, db_type='local')
 
     orders_upload_table = "orders_table"
     local_db_connector.upload_to_db(cleaned_orders_df, orders_upload_table, db_type='local')
