@@ -28,8 +28,12 @@ class DataCleaning:
         3. Maps 'country' names to 'country_code' using a predefined mapping.
         4. Formats 'phone_number' based on 'country_code' using regex patterns.
         5. Updates the 'data' attribute with the cleaned DataFrame.
+
+        Returns:
+            DataFrame: Cleaned DataFrame containing processed user data.
         """
         df = self.data.copy()
+
         df.dropna(inplace=True)
         df['date_of_birth'] = pd.to_datetime(df['date_of_birth'], errors='coerce')
         df['join_date'] = pd.to_datetime(df['join_date'], errors='coerce')
@@ -82,6 +86,7 @@ class DataCleaning:
         df = df.dropna(subset=['phone_number'])
         df.reset_index(drop=True, inplace=True)
         self.data = df
+
         return df
     
     def clean_card_data(self):
@@ -93,8 +98,12 @@ class DataCleaning:
         3. Validates 'card_number' lengths based on 'card_provider'.
         4. Converts 'expiry_date' to datetime and filters out expired cards.
         5. Converts 'date_payment_confirmed' to datetime and drops rows with invalid dates.
+
+        Returns:
+            DataFrame: Cleaned DataFrame containing processed card data.
         """
         df = self.data.copy()
+
         df.dropna(inplace=True)
         df['card_number'] = df['card_number'].apply(lambda x: re.sub(r'\D', '', str(x)))
 
@@ -137,6 +146,7 @@ class DataCleaning:
 
         df.reset_index(drop=True, inplace=True)
         self.data = df
+
         return df
 
     def clean_store_data(self):
@@ -146,9 +156,11 @@ class DataCleaning:
             DataFrame: Cleaned DataFrame containing processed store data.
         """
         df = self.data.copy()
+
         df.dropna(inplace=True)
         df.reset_index(drop=True, inplace=True)
         self.data = df
+
         return df
     
     def convert_product_weights(self, products_df):
@@ -207,23 +219,50 @@ class DataCleaning:
         df.reset_index(drop=True, inplace=True)
 
         return df
+    
+    def clean_orders_data(self):
+        """Cleans the orders table in RDS database.
+
+        Performs the following:
+        1. Drops 'first_name', 'last_name' and '1' columns
+
+        Returns:
+            DataFrame: Cleaned DataFrame containing processed orders data.
+        """
+        df = self.data.copy()
+
+        columns_to_remove = ['first_name', 'last_name', '1']
+        df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
+        df.reset_index(drop=True, inplace=True)
+        self.data = df
+
+        return df
+    
+    def clean_date_details_data(self):
+        df = self.data.copy()
+
+        df.dropna(inplace=True) 
+        df.reset_index(drop=True, inplace=True)
+        self.data = df
+
+        return df
         
 if __name__ == "__main__":
-    """DataFrame from a source Database."""
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
                                   'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
     db_connector = database_utils.DatabaseConnector(creds_file)
     data_extractor = DataExtractor(db_connector)
 
+    """DataFrame from a source Database."""
     table_name = "legacy_users"
     legacy_users_df = data_extractor.read_rds_table(table_name)
     
     if legacy_users_df is not None:
         data_cleaner = DataCleaning(legacy_users_df)
-        cleaned_df = data_cleaner.clean_user_data()
+        cleaned_users_df = data_cleaner.clean_user_data()
 
-        print(f"\nCleaned DataFrame for table '{table_name}':")
-        print(cleaned_df)
+        print(f"\nCleaned Users DataFrame:")
+        print(cleaned_users_df)
     else:
         print("Failed to retrieve data from the table.")
 
@@ -269,11 +308,41 @@ if __name__ == "__main__":
     else:
         print("Failed to retrieve products data from the s3 address.")
 
+    s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
+    date_details_df = data_extractor.extract_from_s3(s3_address)
+
+    if date_details_df is not None:
+        data_cleaner = DataCleaning(date_details_df)
+        cleaned_products_df = data_cleaner.clean_date_details_data(date_details_df)
+
+        print("\nCleaned Products DataFrame:")
+        print(date_details_df)
+    else:
+        print("Failed to retrieve products data from the s3 address.")
+
+    AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
+    AWS_RDS_db_connector.init_db_engine(db_type='source')
+    data_extractor = DataExtractor(db_connector)
+    
+    table_name = "orders_table"
+    orders_df = data_extractor.read_rds_table(table_name)
+
+    """DataFrame from AWS RDS database."""
+    if orders_df is not None:
+        data_cleaner = DataCleaning(orders_df)
+        cleaned_orders_df = data_cleaner.clean_orders_data()
+
+        print(f"\nCleaned Orders DataFrame:")
+        print(cleaned_orders_df)
+    else:
+        print("Failed to retrieve data from the table.")
+
     """Upload all tables to the local database."""
     local_db_connector = database_utils.DatabaseConnector(creds_file)
     local_db_connector.init_db_engine(db_type='local')
+
     upload_table = "dim_users"
-    local_db_connector.upload_to_db(cleaned_df, upload_table, db_type='local')
+    local_db_connector.upload_to_db(cleaned_users_df, upload_table, db_type='local')
 
     card_upload_table = "dim_card_details"
     local_db_connector.upload_to_db(cleaned_card_df, card_upload_table, db_type='local')
@@ -284,17 +353,9 @@ if __name__ == "__main__":
     products_upload_table = "dim_products"
     local_db_connector.upload_to_db(cleaned_products_df, products_upload_table, db_type='local')
 
+    orders_upload_table = "orders_table"
+    local_db_connector.upload_to_db(cleaned_orders_df, orders_upload_table, db_type='local')
+
     print("Tables in the local database:")
     local_db_connector.list_db_tables()
-
-    AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
-    AWS_RDS_db_connector.init_db_engine(db_type='source')
-    data_extractor = DataExtractor(db_connector)
-
-    print("Tables in the AWS RDS database:")
-    AWS_RDS_db_connector.list_db_tables()
-
-    orders_table_name = "orders_table"
-    orders_table = data_extractor.read_rds_table(orders_table_name)
-    print("Orders Table:")
-    print(orders_table)
+    

@@ -129,14 +129,22 @@ class DataExtractor:
         s3 = boto3.client('s3')
 
         parsed_url = urlparse(s3_address)
-        bucket_name = parsed_url.netloc
+        bucket_name = parsed_url.netloc.split('.')[0]
         key = parsed_url.path.lstrip('/')
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tf:
-            temp_csv_path = tf.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(key)[1]) as tf:
+            temp_file_path = tf.name
 
-        s3.download_file(bucket_name, key, temp_csv_path)
-        df = pd.read_csv(temp_csv_path)
-        os.remove(temp_csv_path)
-
+        s3.download_file(bucket_name, key, temp_file_path)
+        file_extension = os.path.splitext(temp_file_path)[1]
+        
+        if file_extension == '.csv':
+            df = pd.read_csv(temp_file_path)
+        elif file_extension == '.json':
+            df = pd.read_json(temp_file_path)
+        else:
+            raise ValueError(f"Unsupported file extension: {file_extension}")
+        
+        os.remove(temp_file_path)
+        
         return df
