@@ -20,7 +20,7 @@ This project focuses on centralising data from multiple sources into a unified d
 
 ### Installation & Usage Instructions
 
-To run the project, you need to have the required database credentials and the necessary API keys. Ensure you have these in a YAML file and set up appropriately.
+To run the project, you need to have the required database credentials. Ensure you have these in a YAML file.
 
 Follow these steps:
 1. Clone the repository to your local machine: __`git clone https://github.com/yourusername/multinational-retail-data-centralisation.git`__
