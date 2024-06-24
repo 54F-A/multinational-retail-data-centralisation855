@@ -1,6 +1,6 @@
-import yaml
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.exc import SQLAlchemyError
+import yaml
 
 
 class DatabaseConnector:

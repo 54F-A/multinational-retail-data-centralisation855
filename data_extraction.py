@@ -1,11 +1,11 @@
 from sqlalchemy import select, MetaData, Table
+from urllib.parse import urlparse
+import boto3
+import os
 import pandas as pd
+import requests
 import tabula
 import tempfile
-import os
-import requests
-import boto3
-from urllib.parse import urlparse
 
 
 class DataExtractor:
