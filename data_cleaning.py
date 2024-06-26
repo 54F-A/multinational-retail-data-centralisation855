@@ -152,6 +152,11 @@ class DataCleaning:
         Performs the following:
         1. Removes the 'lat' column.
         2. Moves the 'latitude' column to the 4th position.
+        3. Drops row 63
+        4. Rounds the 'longitude' and 'latitude' columns to 2 decimal places.
+        5. Drops rows where 'staff_numbers' column are non-numerical.
+        6. Converts 'opening_date' column to 'YYYY-MM-DD' format.
+        7. Drops null values from the 'opening_date' column.
 
         Returns:
             DataFrame: Cleaned DataFrame containing processed store data.
@@ -161,6 +166,13 @@ class DataCleaning:
         columns_to_remove = ['lat']
         df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
         df.insert(3, 'latitude', df.pop('latitude'))
+        df.drop(index=63, inplace=True)
+        df['longitude'] = df['longitude'].round(2)
+        df['latitude'] = df['latitude'].round(2)
+        df = df[pd.to_numeric(df['staff_numbers'], errors='coerce').notnull()]
+        mask = df['opening_date'].str.contains(r'^\d{4}-\d{2}-\d{2}$', na=False)
+        df.loc[~mask, 'opening_date'] = pd.to_datetime(df.loc[~mask, 'opening_date'], format='%B %Y %d', errors='coerce').dt.strftime('%Y-%m-%d')
+        df.dropna(subset=['opening_date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
         self.data = df
 
