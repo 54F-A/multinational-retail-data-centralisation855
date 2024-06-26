@@ -82,41 +82,31 @@ class DataExtractor:
         response = requests.get(endpoint, headers=headers)
 
         if response.status_code == 200:
-            try:
-                data = response.json()
-                return int(data['number_stores'])
-            except KeyError:
-                print(f"Unexpected JSON structure: {data}")
-                return None
-        else:
-            print(f"Failed to retrieve number of stores. Status code: {response.status_code}")
-            return None
+            data = response.json()
+            df = pd.DataFrame([data])
 
-    def retrieve_stores_data(self, endpoint, headers):
-        """Retrieves store from the API endpoint and saves into a pandas DataFrame.
+        return df
+   
+    def retrieve_store_details(self, store_number, endpoint, headers):
+        """Extracts data from the API and returns it as a DataFrame.
 
         Args:
+            store_number: The unique identifier for the store
             endpoint (str): Endpoint URL to retrieve the number of stores.
             headers (dict): Dictionary containing headers for the API request.
 
         Returns:
-            DataFrame: DataFrame containing the stores metadata.
+            DataFrame: A DataFrame containing the store data.
         """
+        endpoint = endpoint.format(store_number=store_number)
         response = requests.get(endpoint, headers=headers)
 
         if response.status_code == 200:
-            data = response.json()
-                
-            if 'number_stores' in data:
-                df = pd.DataFrame([data])
-                return df
-            else:
-                print("No 'number_stores' key found in JSON data.")
-                return None
-        else:
-            print(f"Failed to retrieve stores metadata. Status code: {response.status_code}")
-            return None
-    
+            store_data = response.json()
+            df = pd.DataFrame([store_data])
+            
+            return df
+
     def extract_from_s3(self, s3_address):
         """Extracts data from S3 bucket and returns it as a DataFrame.
 

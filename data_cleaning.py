@@ -149,17 +149,23 @@ class DataCleaning:
     def clean_store_data(self):
         """Cleans the store data.
 
+        Performs the following:
+        1. Removes the 'lat' column.
+        2. Moves the 'latitude' column to the 4th position.
+
         Returns:
             DataFrame: Cleaned DataFrame containing processed store data.
         """
         df = self.data.copy()
 
-        df.dropna(inplace=True)
+        columns_to_remove = ['lat']
+        df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
+        df.insert(3, 'latitude', df.pop('latitude'))
         df.reset_index(drop=True, inplace=True)
         self.data = df
 
         return df
-    
+
     def convert_product_weights(self, products_df):
         """Converts product weight to kg.
 
@@ -182,7 +188,6 @@ class DataCleaning:
                 for unit, factor in conversions.items():
                     if unit in weight:
                         return round(float(re.sub(r'[^\d.]', '', weight)) * factor, 2)
-            return None
         
         products_df['weight'] = products_df['weight'].apply(convert_weight)
         products_df.reset_index(drop=True, inplace=True)
@@ -252,114 +257,86 @@ if __name__ == "__main__":
     creds_file = r'c:/Users/safi-/OneDrive/Occupation/AiCore/AiCore Training/PROJECTS/' \
                                   'Multinational Retail Data Centralisation Project/multinational-retail-data-centralisation855/db_creds.yaml'
     db_connector = database_utils.DatabaseConnector(creds_file)
+
     data_extractor = DataExtractor(db_connector)
 
-    """User data from a database table."""
-    table_name = "legacy_users"
-    legacy_users_df = data_extractor.read_rds_table(table_name)
-    
-    if legacy_users_df is not None:
-        data_cleaner = DataCleaning(legacy_users_df)
-        cleaned_users_df = data_cleaner.clean_user_data()
+    """Extract and clean user data."""
+    user_data = data_extractor.read_rds_table('legacy_users')
+    cleaner = DataCleaning(user_data)
+    cleaned_user_data = cleaner.clean_user_data()
 
-        print(f"\nCleaned Users DataFrame:")
-        print(cleaned_users_df)
-    else:
-        print("Failed to retrieve data from the table.")
-
-    """Card data from a PDF file."""
+    """Extract and clean card data."""
     pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
-    card_df = data_extractor.retrieve_pdf_data(pdf_link)
 
-    if card_df is not None:
-        data_cleaner = DataCleaning(card_df)
-        cleaned_card_df = data_cleaner.clean_card_data()
+    card_data = data_extractor.retrieve_pdf_data(pdf_link)
+    cleaner = DataCleaning(card_data)
+    cleaned_card_data = cleaner.clean_card_data()
 
-        print(f"\nCleaned DataFrame from PDF:")
-        print(cleaned_card_df)
-    else:
-        print("Failed to retrieve card data from the pdf.")
+    """Print number of stores."""
+    endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
+    headers = {"x-api-key": "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"}
 
-    """Stores data from an API."""
-    api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
-    api_headers = {'x-api-key': 'yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX'}
-    data_extractor = DataExtractor()
-    stores_df = data_extractor.retrieve_stores_data(api_endpoint, api_headers)
+    number_of_stores = data_extractor.list_number_of_stores(endpoint, headers)
+    total_stores = number_of_stores.iloc[0, 0]
 
-    if stores_df is not None:
-        data_cleaner = DataCleaning(stores_df)
-        cleaned_store_df = data_cleaner.clean_store_data()
+    """Extract and clean store data."""
+    endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}'
+    
+    stores_details = []
 
-        print("\nCleaned Stores DataFrame:")
-        print(cleaned_store_df)
-    else:
-        print("Failed to retrieve stores data from the API.")
+    for store_number in range(1, (total_stores + 1)):
+        stores_data = data_extractor.retrieve_store_details(str(store_number), endpoint, headers)
+        stores_details.append(stores_data)
 
-    """Products data from an S3 bucket."""
+    stores_dataframe = pd.concat(stores_details, ignore_index=True)
+    cleaner = DataCleaning(stores_dataframe)
+    cleaned_store_data = cleaner.clean_store_data()
+
+    """Extract and clean product data."""
     s3_address = "s3://data-handling-public/products.csv"
     products_df = data_extractor.extract_from_s3(s3_address)
 
-    if products_df is not None:
-        data_cleaner = DataCleaning(products_df)
-        products_df = data_cleaner.convert_product_weights(products_df)
-        cleaned_products_df = data_cleaner.clean_products_data(products_df)
+    product_data = data_extractor.extract_from_s3(s3_address)
+    cleaner = DataCleaning(product_data)
+    cleaned_product_data = cleaner.clean_products_data(products_df)
 
-        print("\nCleaned Products DataFrame:")
-        print(cleaned_products_df)
-    else:
-        print("Failed to retrieve products data from the s3 address.")
-
-    """Date details data from an S3 bucket."""
+    """Extract and clean date time data."""
     s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
-    date_times_df = data_extractor.extract_from_s3(s3_address)
 
-    if date_times_df is not None:
-        data_cleaner = DataCleaning(date_times_df)
-        cleaned_date_times_df = data_cleaner.clean_date_times_data()
+    date_time_data = data_extractor.extract_from_s3(s3_address)
+    cleaner = DataCleaning(date_time_data)
+    cleaned_date_time_data = cleaner.clean_date_times_data()
 
-        print("\nCleaned Date Details DataFrame:")
-        print(cleaned_date_times_df)
-    else:
-        print("Failed to retrieve stores data from the API.")
-
+    """Extract and clean orders data."""
     AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
     AWS_RDS_db_connector.init_db_engine(db_type='source')
     data_extractor = DataExtractor(db_connector)
-    
-    table_name = "orders_table"
-    orders_df = data_extractor.read_rds_table(table_name)
 
-    """Orders data from an AWS RDS database."""
-    if orders_df is not None:
-        data_cleaner = DataCleaning(orders_df)
-        cleaned_orders_df = data_cleaner.clean_orders_data()
-
-        print(f"\nCleaned Orders DataFrame:")
-        print(cleaned_orders_df)
-    else:
-        print("Failed to retrieve data from the table.")
+    orders_data = data_extractor.read_rds_table("orders_table")
+    cleaner = DataCleaning(orders_data)
+    cleaned_orders_data = cleaner.clean_orders_data()
 
     """Upload all tables to the local database."""
     local_db_connector = database_utils.DatabaseConnector(creds_file)
     local_db_connector.init_db_engine(db_type='local')
 
     upload_table = "dim_users"
-    local_db_connector.upload_to_db(cleaned_users_df, upload_table, db_type='local')
+    local_db_connector.upload_to_db(cleaned_user_data, upload_table, db_type='local')
 
     card_upload_table = "dim_card_details"
-    local_db_connector.upload_to_db(cleaned_card_df, card_upload_table, db_type='local')
+    local_db_connector.upload_to_db(cleaned_card_data, card_upload_table, db_type='local')
 
     store_upload_table = "dim_store_details"
-    local_db_connector.upload_to_db(cleaned_store_df, store_upload_table, db_type='local')
+    local_db_connector.upload_to_db(cleaned_store_data, store_upload_table, db_type='local')
 
     products_upload_table = "dim_products"
-    local_db_connector.upload_to_db(cleaned_products_df, products_upload_table, db_type='local')
+    local_db_connector.upload_to_db(cleaned_product_data, products_upload_table, db_type='local')
 
     date_times_upload_table = "dim_date_times"
-    local_db_connector.upload_to_db(cleaned_date_times_df, date_times_upload_table, db_type='local')
+    local_db_connector.upload_to_db(cleaned_date_time_data, date_times_upload_table, db_type='local')
 
     orders_upload_table = "orders_table"
-    local_db_connector.upload_to_db(cleaned_orders_df, orders_upload_table, db_type='local')
+    local_db_connector.upload_to_db(cleaned_orders_data, orders_upload_table, db_type='local')
 
     print("Tables in the local database:")
     local_db_connector.list_db_tables()
