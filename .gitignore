@@ -2,4 +2,3 @@ db_creds.yaml
 __pycache__/
 *.pyc
 *.__pycache__
-*.sql
