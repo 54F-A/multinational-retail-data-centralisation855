@@ -2,6 +2,7 @@ from data_extraction import DataExtractor
 import database_utils
 import pandas as pd
 import re
+import uuid
 
 
 class DataCleaning:
@@ -232,6 +233,16 @@ class DataCleaning:
         df = self.data.copy()
 
         df.dropna(inplace=True) 
+
+        def is_valid_uuid(val):
+            try:
+                uuid.UUID(str(val))
+                return True
+            except ValueError:
+                return False
+        
+        df = df[df['date_uuid'].apply(is_valid_uuid)]
+
         df.reset_index(drop=True, inplace=True)
         self.data = df
 
