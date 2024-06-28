@@ -153,6 +153,18 @@ __`local_db_connector.upload_to_db(cleaned_date_times_df, "dim_date_times", db_t
 
 __`local_db_connector.upload_to_db(cleaned_orders_df, "orders_table", db_type='local')`__
 
+### Database Schema:
+
+Alters the data in the local database using the query tool.
+
+Finds the maximum length of the values in a given column.
+
+__`SELECT MAX(LENGTH(CAST(column_name AS TEXT))) FROM table_name;`__
+
+Alter the data type of a given column.
+
+__`ALTER COLUMN column_name SET DATA TYPE data_type;`__
+
 ---
 
 ### License information
