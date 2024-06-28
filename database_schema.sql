@@ -1,4 +1,4 @@
--- Change the data types to correspond to those seen in the table below.
+-- Change the data types to correspond to those seen in the table below:
 -- +------------------+--------------------+--------------------+
 -- |   orders_table   | current data type  | required data type |
 -- +------------------+--------------------+--------------------+
@@ -13,6 +13,9 @@
 
 --To find ? in VARCHAR:
 SELECT MAX(LENGTH(CAST(column_name AS TEXT))) FROM table_name;
+
+--To delete row:
+DELETE FROM table_name WHERE column_name = '########';
 
 ALTER TABLE orders_table
     ALTER COLUMN date_uuid SET DATA TYPE UUID USING date_uuid::uuid,
@@ -69,3 +72,67 @@ ALTER TABLE dim_store_details
     ALTER COLUMN continent SET DATA TYPE VARCHAR(255);
 ALTER TABLE dim_store_details
 	ALTER COLUMN store_type DROP NOT NULL;
+
+-- Reomve £ character from the product_price column.
+-- Add a new column weight_class which will contain human-readable values based on the weight range of the product.
+-- +--------------------------+-------------------+
+-- | weight_class VARCHAR(?)  | weight range(kg)  |
+-- +--------------------------+-------------------+
+-- | Light                    | < 2               |
+-- | Mid_Sized                | >= 2 - < 40       |
+-- | Heavy                    | >= 40 - < 140     |
+-- | Truck_Required           | => 140            |
+-- +----------------------------+-----------------+
+
+UPDATE dim_products
+SET product_price = REPLACE(product_price, '£', '');
+
+ALTER TABLE dim_products
+ADD COLUMN weight_class VARCHAR(20);
+
+UPDATE dim_products
+SET weight_class = CASE
+    WHEN CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) < 2 THEN 'Light'
+    WHEN CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) >= 2 AND CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) < 40 THEN 'Mid_Sized'
+    WHEN CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) >= 40 AND CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) < 140 THEN 'Heavy'
+    WHEN CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) >= 140 THEN 'Truck_Required'
+END;
+
+-- Make the changes to the columns to cast them to the following data types:
+
+-- +-----------------+--------------------+--------------------+
+-- |  dim_products   | current data type  | required data type |
+-- +-----------------+--------------------+--------------------+
+-- | product_price   | TEXT               | FLOAT              |
+-- | weight          | TEXT               | FLOAT              |
+-- | EAN             | TEXT               | VARCHAR(?)         |
+-- | product_code    | TEXT               | VARCHAR(?)         |
+-- | date_added      | TEXT               | DATE               |
+-- | uuid            | TEXT               | UUID               |
+-- | still_available | TEXT               | BOOL               |
+-- | weight_class    | TEXT               | VARCHAR(?)         |
+-- +-----------------+--------------------+--------------------+
+
+ALTER TABLE dim_products
+RENAME COLUMN removed TO still_available;
+
+UPDATE dim_products
+SET weight = REPLACE(weight, 'kg', '');
+
+UPDATE dim_products
+SET still_available = CASE
+    WHEN still_available ILIKE 'Still_avaliable' THEN 'true'
+    WHEN still_available ILIKE 'Removed' THEN 'false'
+END;
+
+ALTER TABLE dim_products
+    ALTER COLUMN product_price SET DATA TYPE FLOAT USING product_price::double precision,
+    ALTER COLUMN weight SET DATA TYPE FLOAT USING weight::double precision,
+    ALTER COLUMN EAN SET DATA TYPE VARCHAR()
+    ALTER COLUMN product_code SET DATA TYPE VARCHAR(11),
+    ALTER COLUMN date_added SET DATA TYPE DATE USING date_added::date,
+    ALTER COLUMN uuid SET DATA TYPE UUID USING uuid::uuid,
+    ALTER COLUMN still_available SET DATA TYPE BOOL USING still_available::bool,
+    ALTER COLUMN weight_class SET DATA TYPE VARCHAR(14);
+
+SELECT * FROM dim_products
