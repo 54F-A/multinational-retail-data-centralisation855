@@ -35,6 +35,7 @@ Follow these steps:
 - Extracts data from various sources (__databases, PDFs, APIs, S3__).
 - Cleans and preprocesses the data.
 - Uploads the cleaned data to a local database.
+- Creates a database schema using primary keys and foreign keys.
 
 ---
 
@@ -164,6 +165,18 @@ __`SELECT MAX(LENGTH(CAST(column_name AS TEXT))) FROM table_name;`__
 Alter the data type of a given column.
 
 __`ALTER COLUMN column_name SET DATA TYPE data_type;`__
+
+Create a primary key.
+
+__`ALTER TABLE table_name ALTER COLUMN column_name SET NOT NULL;`__
+__`ALTER TABLE table_name ADD UNIQUE (column_name);`__
+__`ALTER TABLE table_name ADD PRIMARY KEY (column_name);`__
+
+Create a foreign key.
+
+__`ALTER TABLE table_name`__
+__`ADD FOREIGN KEY (column_name)`__
+__`REFERENCES dim_users(column_name);`__
 
 ---
 
