@@ -131,7 +131,7 @@ END;
 ALTER TABLE dim_products
     ALTER COLUMN product_price SET DATA TYPE FLOAT USING product_price::double precision,
     ALTER COLUMN weight SET DATA TYPE FLOAT USING weight::double precision,
-    ALTER COLUMN EAN SET DATA TYPE VARCHAR()
+    ALTER COLUMN EAN SET DATA TYPE VARCHAR(20),
     ALTER COLUMN product_code SET DATA TYPE VARCHAR(11),
     ALTER COLUMN date_added SET DATA TYPE DATE USING date_added::date,
     ALTER COLUMN uuid SET DATA TYPE UUID USING uuid::uuid,
