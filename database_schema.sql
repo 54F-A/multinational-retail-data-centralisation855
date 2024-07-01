@@ -138,8 +138,6 @@ ALTER TABLE dim_products
     ALTER COLUMN still_available SET DATA TYPE BOOL USING still_available::bool,
     ALTER COLUMN weight_class SET DATA TYPE VARCHAR(14);
 
-SELECT * FROM dim_products
-
 -- Update the dim_date_times table:
 
 -- +-----------------+-------------------+--------------------+
