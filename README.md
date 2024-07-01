@@ -8,6 +8,7 @@
 - #### [Data Extraction](#4-data-extraction)
 - #### [Data Cleaning](#5-data-cleaning)
 - #### [Data Uploading](#5-data-uploading)
+- #### [Database Schema](#database-schema)
 #### [4. License information](#6-license-information)
 
 ---
@@ -153,6 +154,8 @@ __`local_db_connector.upload_to_db(cleaned_products_df, "dim_products", db_type=
 __`local_db_connector.upload_to_db(cleaned_date_times_df, "dim_date_times", db_type='local')`__
 
 __`local_db_connector.upload_to_db(cleaned_orders_df, "orders_table", db_type='local')`__
+
+---
 
 ### Database Schema:
 
