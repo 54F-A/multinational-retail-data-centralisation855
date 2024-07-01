@@ -1,4 +1,5 @@
--- Change the data types to correspond to those seen in the table below:
+-- Update the orders_table:
+
 -- +------------------+--------------------+--------------------+
 -- |   orders_table   | current data type  | required data type |
 -- +------------------+--------------------+--------------------+
@@ -25,7 +26,8 @@ ALTER TABLE orders_table
     ALTER COLUMN product_code SET DATA TYPE VARCHAR(11),
     ALTER COLUMN product_quantity SET DATA TYPE SMALLINT;
 
--- The column required to be changed in the users table are as follows:
+-- Update the dim_users table:
+
 -- +----------------+--------------------+--------------------+
 -- | dim_users      | current data type  | required data type |
 -- +----------------+--------------------+--------------------+
@@ -45,9 +47,10 @@ ALTER TABLE dim_users
     ALTER COLUMN user_uuid SET DATA TYPE UUID USING user_uuid::uuid,
     ALTER COLUMN join_date SET DATA TYPE DATE;
 
--- Set the data types for each column as shown below:
+-- Update the dim_store_details table:
+
 -- +---------------------+-------------------+------------------------+
--- | store_details_table | current data type |   required data type   |
+-- | dim_store_details | current data type |   required data type   |
 -- +---------------------+-------------------+------------------------+
 -- | longitude           | TEXT              | FLOAT                  |
 -- | locality            | TEXT              | VARCHAR(255)           |
@@ -73,6 +76,8 @@ ALTER TABLE dim_store_details
 ALTER TABLE dim_store_details
 	ALTER COLUMN store_type DROP NOT NULL;
 
+-- Update the dim_products table:
+
 -- Reomve £ character from the product_price column.
 -- Add a new column weight_class which will contain human-readable values based on the weight range of the product.
 -- +--------------------------+-------------------+
@@ -97,8 +102,6 @@ SET weight_class = CASE
     WHEN CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) >= 40 AND CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) < 140 THEN 'Heavy'
     WHEN CAST(REPLACE(weight, ' kg', '') AS DECIMAL(10, 2)) >= 140 THEN 'Truck_Required'
 END;
-
--- Make the changes to the columns to cast them to the following data types:
 
 -- +-----------------+--------------------+--------------------+
 -- |  dim_products   | current data type  | required data type |
@@ -136,3 +139,90 @@ ALTER TABLE dim_products
     ALTER COLUMN weight_class SET DATA TYPE VARCHAR(14);
 
 SELECT * FROM dim_products
+
+-- Update the dim_date_times table:
+
+-- +-----------------+-------------------+--------------------+
+-- | dim_date_times  | current data type | required data type |
+-- +-----------------+-------------------+--------------------+
+-- | month           | TEXT              | VARCHAR(?)         |
+-- | year            | TEXT              | VARCHAR(?)         |
+-- | day             | TEXT              | VARCHAR(?)         |
+-- | time_period     | TEXT              | VARCHAR(?)         |
+-- | date_uuid       | TEXT              | UUID               |
+-- +-----------------+-------------------+--------------------+
+
+ALTER TABLE dim_date_times
+    ALTER COLUMN month SET DATA TYPE VARCHAR(10),
+    ALTER COLUMN year SET DATA TYPE VARCHAR(10),
+    ALTER COLUMN day SET DATA TYPE VARCHAR(10),
+    ALTER COLUMN time_period SET DATA TYPE VARCHAR(10),
+    ALTER COLUMN date_uuid SET DATA TYPE UUID USING date_uuid::uuid;
+
+-- Update the dim_card_details table:
+
+-- +------------------------+-------------------+--------------------+
+-- |    dim_card_details    | current data type | required data type |
+-- +------------------------+-------------------+--------------------+
+-- | card_number            | TEXT              | VARCHAR(?)         |
+-- | expiry_date            | TEXT              | VARCHAR(?)         |
+-- | date_payment_confirmed | TEXT              | DATE               |
+-- +------------------------+-------------------+--------------------+
+
+ALTER TABLE dim_card_details
+    ALTER COLUMN card_number SET DATA TYPE VARCHAR(20),
+    ALTER COLUMN expiry_date SET DATA TYPE VARCHAR(20),
+    ALTER COLUMN date_payment_confirmed SET DATA TYPE DATE;
+
+-- Add the primary keys to each of the tables prefixed with dim:
+
+-- Each table will serve the orders_table.
+-- Update the columns in the dim tables with a primary key that matches the same column in the orders_table.
+-- Update the respective columns as primary key columns.
+
+-- For dim_users table:
+ALTER TABLE dim_users ALTER COLUMN user_uuid SET NOT NULL;
+ALTER TABLE dim_users ADD UNIQUE (user_uuid);
+ALTER TABLE dim_users ADD PRIMARY KEY (user_uuid);
+
+-- For dim_date_times table:
+ALTER TABLE dim_date_times ALTER COLUMN date_uuid SET NOT NULL;
+ALTER TABLE dim_date_times ADD UNIQUE (date_uuid);
+ALTER TABLE dim_date_times ADD PRIMARY KEY (date_uuid);
+
+-- For dim_card_details table
+ALTER TABLE dim_card_details ALTER COLUMN card_number SET NOT NULL;
+ALTER TABLE dim_card_details ADD UNIQUE (card_number);
+ALTER TABLE dim_card_details ADD PRIMARY KEY (card_number);
+
+-- For dim_store_details table
+ALTER TABLE dim_store_details ALTER COLUMN store_code SET NOT NULL;
+ALTER TABLE dim_store_details ADD UNIQUE (store_code);
+ALTER TABLE dim_store_details ADD PRIMARY KEY (store_code);
+
+-- For dim_products table
+ALTER TABLE dim_products ALTER COLUMN product_code SET NOT NULL;
+ALTER TABLE dim_products ADD UNIQUE (product_code);
+ALTER TABLE dim_products ADD PRIMARY KEY (product_code);
+
+-- Add foreign keys for orders_table:
+
+ALTER TABLE orders_table
+ADD FOREIGN KEY (user_uuid)
+REFERENCES dim_users(user_uuid);
+
+ALTER TABLE orders_table
+ADD FOREIGN KEY (date_uuid)
+REFERENCES dim_date_times(date_uuid);
+
+ALTER TABLE orders_table
+ADD FOREIGN KEY (card_number)
+REFERENCES dim_card_details(card_number);
+
+ALTER TABLE orders_table
+ADD FOREIGN KEY (store_code)
+REFERENCES dim_store_details(store_code);
+
+ALTER TABLE orders_table
+ADD FOREIGN KEY (product_code)
+REFERENCES dim_products(product_code);
