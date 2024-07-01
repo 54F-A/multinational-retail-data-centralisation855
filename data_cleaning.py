@@ -55,31 +55,35 @@ class DataCleaning:
                 country_code (str): The country code corresponding to the phone number.
 
             Returns:
-                str or None: The formatted phone number if valid, otherwise None.
+                str: The formatted phone number.
             """
-            clean_number = re.sub(r'[^0-9+(]', '', phone_number)
-            gb_pattern = re.compile(r'^\+?44\s?\(?0?\)?(\d{2})\D?(\d{4})\D?(\d{0,4})$')
-            us_pattern = re.compile(r'^\+?1\s?\(?(\d{3})\)?\D?(\d{3})\D?(\d{4})$')
-            de_pattern = re.compile(r'^\+?49\s?\(?0?(\d{2})\D?(\d{3})\D?(\d{4})$')
+            clean_number = re.sub(r'[^0-9+]', '', phone_number)
 
-            if country_code == 'GB':
-                match = gb_pattern.match(clean_number)
-                if match and len(''.join(match.groups())) == 10:
-                    return f"+44 {match.group(1)} {match.group(2)} {match.group(3)}".strip()
-                else:
-                    return None
-            elif country_code == 'US':
-                match = us_pattern.match(clean_number)
-                if match and len(''.join(match.groups())) == 10:
-                    return f"+1 {match.group(1)}-{match.group(2)}-{match.group(3)}"
-                else:
-                    return None
-            elif country_code == 'DE':
+            if country_code == 'DE':
+                de_pattern = re.compile(r'^\+?49\s?0?(\d{2,4})\s?(\d{3,4})\s?(\d{4})$')
                 match = de_pattern.match(clean_number)
-                if match and len(''.join(match.groups())) == 10:
+                if match:
                     return f"+49 {match.group(1)} {match.group(2)} {match.group(3)}"
                 else:
                     return None
+
+            elif country_code == 'GB':
+                gb_pattern = re.compile(r'^\+?44\s?0?(\d{3,4})\s?(\d{3,4})\s?(\d{4})$')
+                match = gb_pattern.match(clean_number)
+                if match:
+                    return f"+44 {match.group(1)} {match.group(2)} {match.group(3)}"
+                else:
+                    return None
+
+            elif country_code == 'US':
+                clean_number = re.sub(r'x\d+$', '', clean_number)
+                us_pattern = re.compile(r'^\+?1?\s?\(?(\d{3})\)?\s?-?\.?(\d{3})\s?-?\.?(\d{4})$')
+                match = us_pattern.match(clean_number)
+                if match:
+                    return f"+1 {match.group(1)}-{match.group(2)}-{match.group(3)}"
+                else:
+                    return None
+
             else:
                 return None
 
@@ -215,6 +219,7 @@ class DataCleaning:
         df = products_df.copy()
 
         df.dropna(inplace=True)
+        df = df.loc[df['removed'].isin(['Still_avaliable', 'Removed'])]
         df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
         
         df.reset_index(drop=True, inplace=True)
