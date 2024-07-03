@@ -52,8 +52,13 @@ class DataExtractor:
         Returns:
             DataFrame: DataFrame containing the extracted data from the PDF.
         """
+
+        temp_pdf_path = None
+        
         if pdf_link.startswith('http'):
             response = requests.get(pdf_link)
+            response.raise_for_status()
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
                 tf.write(response.content)
                 temp_pdf_path = tf.name
@@ -61,11 +66,10 @@ class DataExtractor:
             temp_pdf_path = pdf_link
 
         dfs = tabula.read_pdf(temp_pdf_path, pages='all', multiple_tables=True)
-
-        if pdf_link.startswith('http'):
-            os.remove(temp_pdf_path)
-
         df = pd.concat(dfs, ignore_index=True)
+
+        if temp_pdf_path and pdf_link.startswith('http'):
+            os.remove(temp_pdf_path)
 
         return df
     

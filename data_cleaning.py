@@ -1,5 +1,6 @@
 from data_extraction import DataExtractor
 import database_utils
+import datetime
 import pandas as pd
 import re
 import uuid
@@ -24,18 +25,13 @@ class DataCleaning:
         """Cleans the user data.
 
         Performs the following:
-        1. Drops rows with missing values.
-        2. Converts 'date_of_birth' and 'join_date' columns to datetime format.
-        3. Maps 'country' names to 'country_code' using a predefined mapping.
-        4. Formats 'phone_number' based on 'country_code' using regex patterns.
-        5. Updates the 'data' attribute with the cleaned DataFrame.
+        1.
 
         Returns:
             DataFrame: Cleaned DataFrame containing processed user data.
         """
         df = self.data.copy()
 
-        df.dropna(inplace=True)
         df['date_of_birth'] = pd.to_datetime(df['date_of_birth'], errors='coerce')
         df['join_date'] = pd.to_datetime(df['join_date'], errors='coerce')
 
@@ -47,81 +43,76 @@ class DataCleaning:
         df['country_code'] = df['country'].map(country_mapping)
         df = df[df['country_code'].notna()]
 
+
         def format_phone_number(phone_number, country_code):
-            """Formats the phone number based on the country code using regex patterns.
+            phone_number = re.sub(r'\s+|\(|\)|\.|-', '', phone_number)
 
-            Args:
-                phone_number (str): The original phone number.
-                country_code (str): The country code corresponding to the phone number.
-
-            Returns:
-                str: The formatted phone number.
-            """
-            clean_number = re.sub(r'[^0-9+]', '', phone_number)
-
-            if country_code == 'DE':
-                de_pattern = re.compile(r'^\+?49\s?0?(\d{2,4})\s?(\d{3,4})\s?(\d{4})$')
-                match = de_pattern.match(clean_number)
-                if match:
-                    return f"+49 {match.group(1)} {match.group(2)} {match.group(3)}"
+            if country_code == 'GB': 
+                if phone_number.startswith('('):
+                    return f"({phone_number[1:6]} {phone_number[6:9]} {phone_number[9:]}"
+                elif phone_number.startswith('0'):
+                    return f"{phone_number[0:5]} {phone_number[5:]}"
+                elif phone_number.startswith('+44'):
+                    if len(phone_number) == 13:
+                        return f"{phone_number[0:3]} {phone_number[3:7]} {phone_number[7:]}"
+                    elif len(phone_number) == 14:
+                        phone_number = phone_number.replace('+44', '')
+                        return f"{phone_number[0:3]} {phone_number[3:7]} {phone_number[7:]}"
                 else:
-                    return None
-
-            elif country_code == 'GB':
-                gb_pattern = re.compile(r'^\+?44\s?0?(\d{3,4})\s?(\d{3,4})\s?(\d{4})$')
-                match = gb_pattern.match(clean_number)
-                if match:
-                    return f"+44 {match.group(1)} {match.group(2)} {match.group(3)}"
-                else:
-                    return None
-
+                    return phone_number
+            
             elif country_code == 'US':
-                clean_number = re.sub(r'x\d+$', '', clean_number)
-                us_pattern = re.compile(r'^\+?1?\s?\(?(\d{3})\)?\s?-?\.?(\d{3})\s?-?\.?(\d{4})$')
-                match = us_pattern.match(clean_number)
-                if match:
-                    return f"+1 {match.group(1)}-{match.group(2)}-{match.group(3)}"
+                if 'x' in phone_number:
+                    return f"{phone_number[0:3]} {phone_number[3:6]} {phone_number[6:10]} {phone_number[10:]}"
+                elif phone_number.startswith('+'):
+                    if len(phone_number) > 10:
+                        return f"{phone_number[0:3]} {phone_number[3:6]} {phone_number[6:10]} {phone_number[10:]}"
+                elif phone_number.startswith('00'):
+                    phone_number = phone_number.replace('00', '', 1)
+                    return f"+{phone_number[0:1]} {phone_number[1:5]} {phone_number[5:8]} {phone_number[8:]}"
                 else:
-                    return None
-
+                    return phone_number
+                
+            elif country_code == 'DE':
+                if phone_number.startswith('+49'):
+                    return f"{phone_number[0:3]} {phone_number[3:5]} {phone_number[5:9]} {phone_number[9:]}"
+                elif phone_number.startswith('0'):
+                    return f"{phone_number[0:4]} {phone_number[4:]}"
+                else:
+                    return phone_number
+            
             else:
-                return None
+                return phone_number
 
+        df = df[df['phone_number'].notna()]
         df['phone_number'] = df.apply(lambda row: format_phone_number(row['phone_number'], row['country_code']), axis=1)
-        df = df.dropna(subset=['phone_number'])
         df.reset_index(drop=True, inplace=True)
         self.data = df
-
+        
         return df
     
     def clean_card_data(self):
         """Cleans the card data.
 
         Performs the following:
-        1. Drops rows with missing values.
-        2. Strips non-numeric characters from 'card_number'.
-        3. Validates 'card_number' lengths based on 'card_provider'.
-        4. Converts 'expiry_date' to datetime and filters out expired cards.
-        5. Converts 'date_payment_confirmed' to datetime and drops rows with invalid dates.
+        1.
 
         Returns:
             DataFrame: Cleaned DataFrame containing processed card data.
         """
         df = self.data.copy()
-
-        df.dropna(inplace=True)
+        
         df['card_number'] = df['card_number'].apply(lambda x: re.sub(r'\D', '', str(x)))
-
         valid_lengths = {
-            'Diners Club / Carte Blanche': [14],
             'American Express': [15],
-            'JCB 16 digit': [16],
-            'JCB 15 digit': [15],
-            'Maestro': [12, 13, 19],
-            'Mastercard': [16],
             'Discover': [16],
-            'VISA 16 digit': [16],
+            'Diners Club / Carte Blanche': [14],
+            'JCB 15 digit': [15],
+            'JCB 16 digit': [16],
+            'Maestro': [12, 13 ,16],
+            'Mastercard': [16],
             'VISA 13 digit': [13],
+            'VISA 16 digit': [16],
             'VISA 19 digit': [19]
         }
 
@@ -136,16 +127,14 @@ class DataCleaning:
                 bool: True if the card number length is valid for the given provider, otherwise False.
             """
             return len(card_number) in valid_lengths.get(provider, [])
-
+        
         df = df[df.apply(lambda row: is_valid_length(row['card_number'], row['card_provider']), axis=1)]
 
         df['expiry_date'] = pd.to_datetime(df['expiry_date'], format='%m/%y', errors='coerce')
-        current_date = pd.Timestamp.now()
-        df = df[df['expiry_date'] >= current_date]
+        df = df[df['expiry_date'] >= pd.Timestamp.now()]
 
         df['date_payment_confirmed'] = pd.to_datetime(df['date_payment_confirmed'], errors='coerce')
         df.dropna(subset=['date_payment_confirmed'], inplace=True)
-
         df.reset_index(drop=True, inplace=True)
         self.data = df
 
@@ -155,26 +144,18 @@ class DataCleaning:
         """Cleans the store data.
 
         Performs the following:
-        1. Removes the 'lat' column.
-        2. Moves the 'latitude' column to the 4th position.
-        3. Drops row 63
-        4. Drops rows where 'staff_numbers' column are non-numerical.
-        5. Converts 'opening_date' column to 'YYYY-MM-DD' format.
-        6. Drops missing values from the 'opening_date' column.
+        1.
 
         Returns:
             DataFrame: Cleaned DataFrame containing processed store data.
         """
         df = self.data.copy()
 
+        df.dropna(subset=['longitude'], inplace=True)
+        df = df[df['longitude'].str.match(r'^\d+(\.\d+)?$')]
         columns_to_remove = ['lat']
         df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
         df.insert(3, 'latitude', df.pop('latitude'))
-        df.drop(index=63, inplace=True)
-        df = df[pd.to_numeric(df['staff_numbers'], errors='coerce').notnull()]
-        mask = df['opening_date'].str.contains(r'^\d{4}-\d{2}-\d{2}$', na=False)
-        df.loc[~mask, 'opening_date'] = pd.to_datetime(df.loc[~mask, 'opening_date'], format='%B %Y %d', errors='coerce').dt.strftime('%Y-%m-%d')
-        df.dropna(subset=['opening_date'], inplace=True)
         df.reset_index(drop=True, inplace=True)
         self.data = df
 
@@ -220,9 +201,9 @@ class DataCleaning:
 
         df.dropna(inplace=True)
         df = df.loc[df['removed'].isin(['Still_avaliable', 'Removed'])]
-        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-        
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)       
         df.reset_index(drop=True, inplace=True)
+        self.data = df
 
         return df
     
@@ -247,7 +228,6 @@ class DataCleaning:
                 return False
         
         df = df[df['date_uuid'].apply(is_valid_uuid)]
-
         df.reset_index(drop=True, inplace=True)
         self.data = df
 
@@ -290,20 +270,16 @@ if __name__ == "__main__":
     cleaner = DataCleaning(card_data)
     cleaned_card_data = cleaner.clean_card_data()
 
-    """Print number of stores."""
-    endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
-    headers = {"x-api-key": "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"}
-
-    number_of_stores = data_extractor.list_number_of_stores(endpoint, headers)
-    total_stores = number_of_stores.iloc[0, 0]
-
     """Extract and clean store data."""
-    endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}'
+    endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
+    stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}'
+    headers = {"x-api-key": "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"}
     
+    number_of_stores = data_extractor.list_number_of_stores(endpoint, headers)  
     stores_details = []
 
-    for store_number in range(1, (total_stores + 1)):
-        stores_data = data_extractor.retrieve_store_details(str(store_number), endpoint, headers)
+    for store_number in range(1, 452):
+        stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)
         stores_details.append(stores_data)
 
     stores_dataframe = pd.concat(stores_details, ignore_index=True)
