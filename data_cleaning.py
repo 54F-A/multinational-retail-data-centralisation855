@@ -242,17 +242,17 @@ if __name__ == "__main__":
 
     data_extractor = DataExtractor(db_connector)
 
-    # """Extract and clean user data."""
-    # user_data = data_extractor.read_rds_table('legacy_users')
-    # cleaner = DataCleaning(user_data)
-    # cleaned_user_data = cleaner.clean_user_data()
+    """Extract and clean user data."""
+    user_data = data_extractor.read_rds_table('legacy_users')
+    cleaner = DataCleaning(user_data)
+    cleaned_user_data = cleaner.clean_user_data()
 
-    # """Extract and clean card data."""
-    # pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
+    """Extract and clean card data."""
+    pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
 
-    # card_data = data_extractor.retrieve_pdf_data(pdf_link)
-    # cleaner = DataCleaning(card_data)
-    # cleaned_card_data = cleaner.clean_card_data()
+    card_data = data_extractor.retrieve_pdf_data(pdf_link)
+    cleaner = DataCleaning(card_data)
+    cleaned_card_data = cleaner.clean_card_data()
 
     """Extract and clean store data."""
     endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"
@@ -270,52 +270,52 @@ if __name__ == "__main__":
     cleaner = DataCleaning(stores_dataframe)
     cleaned_store_data = cleaner.clean_store_data()
 
-    # """Extract and clean product data."""
-    # s3_address = "s3://data-handling-public/products.csv"
-    # products_df = data_extractor.extract_from_s3(s3_address)
+    """Extract and clean product data."""
+    s3_address = "s3://data-handling-public/products.csv"
+    products_df = data_extractor.extract_from_s3(s3_address)
 
-    # product_data = data_extractor.extract_from_s3(s3_address)
-    # cleaner = DataCleaning(product_data)
-    # cleaned_product_data = cleaner.clean_products_data(products_df)
-    # cleaned_product_data = cleaner.convert_product_weights(cleaned_product_data)
+    product_data = data_extractor.extract_from_s3(s3_address)
+    cleaner = DataCleaning(product_data)
+    cleaned_product_data = cleaner.clean_products_data(products_df)
+    cleaned_product_data = cleaner.convert_product_weights(cleaned_product_data)
 
-    # """Extract and clean date time data."""
-    # s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
+    """Extract and clean date time data."""
+    s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
 
-    # date_time_data = data_extractor.extract_from_s3(s3_address)
-    # cleaner = DataCleaning(date_time_data)
-    # cleaned_date_time_data = cleaner.clean_date_times_data()
+    date_time_data = data_extractor.extract_from_s3(s3_address)
+    cleaner = DataCleaning(date_time_data)
+    cleaned_date_time_data = cleaner.clean_date_times_data()
 
-    # """Extract and clean orders data."""
-    # AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
-    # AWS_RDS_db_connector.init_db_engine(db_type='source')
-    # data_extractor = DataExtractor(db_connector)
+    """Extract and clean orders data."""
+    AWS_RDS_db_connector = database_utils.DatabaseConnector(creds_file)
+    AWS_RDS_db_connector.init_db_engine(db_type='source')
+    data_extractor = DataExtractor(db_connector)
 
-    # orders_data = data_extractor.read_rds_table("orders_table")
-    # cleaner = DataCleaning(orders_data)
-    # cleaned_orders_data = cleaner.clean_orders_data()
+    orders_data = data_extractor.read_rds_table("orders_table")
+    cleaner = DataCleaning(orders_data)
+    cleaned_orders_data = cleaner.clean_orders_data()
 
     """Upload all tables to the local database."""
     local_db_connector = database_utils.DatabaseConnector(creds_file)
     local_db_connector.init_db_engine(db_type='local')
 
-    # upload_table = "dim_users"
-    # local_db_connector.upload_to_db(cleaned_user_data, upload_table, db_type='local')
+    upload_table = "dim_users"
+    local_db_connector.upload_to_db(cleaned_user_data, upload_table, db_type='local')
 
-    # card_upload_table = "dim_card_details"
-    # local_db_connector.upload_to_db(cleaned_card_data, card_upload_table, db_type='local')
+    card_upload_table = "dim_card_details"
+    local_db_connector.upload_to_db(cleaned_card_data, card_upload_table, db_type='local')
 
     store_upload_table = "dim_store_details"
     local_db_connector.upload_to_db(cleaned_store_data, store_upload_table, db_type='local')
 
-    # products_upload_table = "dim_products"
-    # local_db_connector.upload_to_db(cleaned_product_data, products_upload_table, db_type='local')
+    products_upload_table = "dim_products"
+    local_db_connector.upload_to_db(cleaned_product_data, products_upload_table, db_type='local')
 
-    # date_times_upload_table = "dim_date_times"
-    # local_db_connector.upload_to_db(cleaned_date_time_data, date_times_upload_table, db_type='local')
+    date_times_upload_table = "dim_date_times"
+    local_db_connector.upload_to_db(cleaned_date_time_data, date_times_upload_table, db_type='local')
 
-    # orders_upload_table = "orders_table"
-    # local_db_connector.upload_to_db(cleaned_orders_data, orders_upload_table, db_type='local')
+    orders_upload_table = "orders_table"
+    local_db_connector.upload_to_db(cleaned_orders_data, orders_upload_table, db_type='local')
 
     print("Tables in the local database:")
     local_db_connector.list_db_tables()
