@@ -64,10 +64,10 @@ ALTER TABLE dim_users
 -- +---------------------+-------------------+------------------------+
 
 ALTER TABLE dim_store_details
-    ALTER COLUMN longitude SET DATA TYPE FLOAT USING longitude::double precision,
-    ALTER COLUMN latitude SET DATA TYPE FLOAT USING latitude::double precision,
+    ALTER COLUMN longitude SET DATA TYPE FLOAT USING CASE WHEN longitude = 'N/A' THEN NULL ELSE longitude::double precision END,
+    ALTER COLUMN latitude SET DATA TYPE FLOAT USING CASE WHEN latitude = 'N/A' THEN NULL ELSE latitude::double precision END,
     ALTER COLUMN locality SET DATA TYPE VARCHAR(225),
-    ALTER COLUMN store_code SET DATA TYPE VARCHAR(11),
+    ALTER COLUMN store_code SET DATA TYPE VARCHAR(20),
     ALTER COLUMN staff_numbers SET DATA TYPE SMALLINT USING staff_numbers::smallint,
     ALTER COLUMN opening_date SET DATA TYPE DATE USING opening_date::date,
     ALTER COLUMN store_type SET DATA TYPE VARCHAR(255),
@@ -131,7 +131,6 @@ END;
 ALTER TABLE dim_products
     ALTER COLUMN product_price SET DATA TYPE FLOAT USING product_price::double precision,
     ALTER COLUMN weight SET DATA TYPE FLOAT USING weight::double precision,
-    ALTER COLUMN EAN SET DATA TYPE VARCHAR(20),
     ALTER COLUMN product_code SET DATA TYPE VARCHAR(11),
     ALTER COLUMN date_added SET DATA TYPE DATE USING date_added::date,
     ALTER COLUMN uuid SET DATA TYPE UUID USING uuid::uuid,
@@ -170,7 +169,7 @@ ALTER TABLE dim_date_times
 ALTER TABLE dim_card_details
     ALTER COLUMN card_number SET DATA TYPE VARCHAR(20),
     ALTER COLUMN expiry_date SET DATA TYPE VARCHAR(20),
-    ALTER COLUMN date_payment_confirmed SET DATA TYPE DATE;
+    ALTER COLUMN date_payment_confirmed SET DATA TYPE DATE USING date_payment_confirmed::date;
 
 -- Add the primary keys to each of the tables prefixed with dim:
 
