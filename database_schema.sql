@@ -1,3 +1,12 @@
+--To find ? in VARCHAR:
+SELECT MAX(LENGTH(CAST(column_name AS TEXT))) FROM table_name;
+
+--To delete row:
+DELETE FROM table_name WHERE column_name = '###';
+
+-- To update a value:
+UPDATE table_name SET column_name = '###' WHERE column_name = '###'
+
 -- Update the orders_table:
 
 -- +------------------+--------------------+--------------------+
@@ -11,12 +20,6 @@
 -- | product_quantity | BIGINT             | SMALLINT           |
 -- +------------------+--------------------+--------------------+
 -- The ? in VARCHAR should be replaced with an integer representing the maximum length of the values in that column.
-
---To find ? in VARCHAR:
-SELECT MAX(LENGTH(CAST(column_name AS TEXT))) FROM table_name;
-
---To delete row:
-DELETE FROM table_name WHERE column_name = '########';
 
 ALTER TABLE orders_table
     ALTER COLUMN date_uuid SET DATA TYPE UUID USING date_uuid::uuid,
