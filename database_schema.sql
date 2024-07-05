@@ -204,22 +204,27 @@ ALTER TABLE dim_products ADD PRIMARY KEY (product_code);
 
 -- Add foreign keys for orders_table:
 
+-- For dim_users table:
 ALTER TABLE orders_table
 ADD FOREIGN KEY (user_uuid)
 REFERENCES dim_users(user_uuid);
 
+-- For dim_date_times table:
 ALTER TABLE orders_table
 ADD FOREIGN KEY (date_uuid)
 REFERENCES dim_date_times(date_uuid);
 
+-- For dim_card_details table
 ALTER TABLE orders_table
 ADD FOREIGN KEY (card_number)
 REFERENCES dim_card_details(card_number);
 
+-- For dim_store_details table
 ALTER TABLE orders_table
 ADD FOREIGN KEY (store_code)
 REFERENCES dim_store_details(store_code);
 
+-- For dim_products table
 ALTER TABLE orders_table
 ADD FOREIGN KEY (product_code)
 REFERENCES dim_products(product_code);
