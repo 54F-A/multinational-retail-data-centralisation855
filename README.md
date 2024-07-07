@@ -103,7 +103,7 @@ __`cleaned_user_data = cleaner.clean_user_data()`__
 
 The card data is cleaned and invalid entries are removed.
 
-pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
+__`pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf"`__
 
 __`card_data = data_extractor.retrieve_pdf_data(pdf_link)`__
 
@@ -123,9 +123,9 @@ __`stores_details = []`__
 
 __`for store_number in range(0, 452):`__
 
-   __`stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)`__
+    __`stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)`__
 
-   __` stores_details.append(stores_data)`__
+    __` stores_details.append(stores_data)`__
 
 __`stores_dataframe = pd.concat(stores_details, ignore_index=True)`__
 
