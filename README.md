@@ -123,9 +123,9 @@ __`stores_details = []`__
 
 __`for store_number in range(0, 452):`__
 
-    __`stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)`__
+&nbsp;&nbsp;&nbsp;&nbsp;__`stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)`__
 
-    __` stores_details.append(stores_data)`__
+&nbsp;&nbsp;&nbsp;&nbsp;__` stores_details.append(stores_data)`__
 
 __`stores_dataframe = pd.concat(stores_details, ignore_index=True)`__
 
