@@ -15,7 +15,7 @@
 
 ### Overview: The Project Description
 
-This project focuses on centralising data from multiple sources into a unified database for a multinational retail company. The data is extracted from various sources including a relational database, PDFs, APIs, and S3 buckets, cleaned, and then uploaded to a local database.
+This project focuses on centralising data from multiple sources into a unified database for a multinational retail company. The data is extracted from various sources including a relational database, PDFs, APIs, and S3 buckets, cleaned, and then uploaded to a local database.The tables are altered in the local database according to a database schema.
 
 ---
 
@@ -28,6 +28,7 @@ Follow these steps:
 2. Navigate to the project directory: __`cd multinational-retail-data-centralisation/`__
 3. Install the required packages using: __`pip install`__
 4. Run the cleaning file: __`python database_cleaning.py`__
+5. Use the database_schema file to alter the tables in the local database.
 
 ---
 
@@ -161,13 +162,17 @@ __`local_db_connector.upload_to_db(cleaned_orders_df, "orders_table", db_type='l
 
 Alters the data in the local database using the query tool.
 
-Finds the maximum length of the values in a given column.
+Find the maximum length of values in a given column.
 
 __`SELECT MAX(LENGTH(CAST(column_name AS TEXT))) FROM table_name;`__
 
 Alter the data type of a given column.
 
 __`ALTER COLUMN column_name SET DATA TYPE data_type;`__
+
+Update a value in a given row:
+
+__`UPDATE table_name SET column_name = 'value' WHERE column_name = 'unique_column_value'`__
 
 Create a primary key.
 
