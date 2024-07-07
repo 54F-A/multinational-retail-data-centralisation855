@@ -134,6 +134,7 @@ END;
 ALTER TABLE dim_products
     ALTER COLUMN product_price SET DATA TYPE FLOAT USING product_price::double precision,
     ALTER COLUMN weight SET DATA TYPE FLOAT USING weight::double precision,
+    ALTER COLUMN EAN SET DATA TYPE VARCHAR(20),
     ALTER COLUMN product_code SET DATA TYPE VARCHAR(11),
     ALTER COLUMN date_added SET DATA TYPE DATE USING date_added::date,
     ALTER COLUMN uuid SET DATA TYPE UUID USING uuid::uuid,
@@ -174,8 +175,6 @@ ALTER TABLE dim_card_details
     ALTER COLUMN expiry_date SET DATA TYPE VARCHAR(20),
     ALTER COLUMN date_payment_confirmed SET DATA TYPE DATE USING date_payment_confirmed::date;
 
--- Add the primary keys to each of the tables prefixed with dim:
-
 -- Each table will serve the orders_table.
 -- Update the columns in the dim tables with a primary key that matches the same column in the orders_table.
 -- Update the respective columns as primary key columns.
@@ -205,7 +204,7 @@ ALTER TABLE dim_products ALTER COLUMN product_code SET NOT NULL;
 ALTER TABLE dim_products ADD UNIQUE (product_code);
 ALTER TABLE dim_products ADD PRIMARY KEY (product_code);
 
--- Add foreign keys for orders_table:
+-- Add foreign keys for orders_table.
 
 -- For dim_users table:
 ALTER TABLE orders_table
