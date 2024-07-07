@@ -136,6 +136,7 @@ __`cleaned_date_times_df = data_cleaner.clean_date_times_data()`__
 The orders data is cleaned and unnecessary columns are dropped.
 
 __`data_cleaner = DataCleaning(orders_df)`__
+
 __`cleaned_orders_df = data_cleaner.clean_orders_data()`__
 
 ---
