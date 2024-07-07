@@ -93,51 +93,83 @@ __`date_times_df = data_extractor.extract_from_s3(s3_address)`__
 
 The user data is cleaned.
 
-__`data_cleaner = DataCleaning(legacy_users_df)`__
+__`user_data = data_extractor.read_rds_table('legacy_users')`__
 
-__`cleaned_users_df = data_cleaner.clean_user_data()`__
+__`cleaner = DataCleaning(user_data)`__
+
+__`cleaned_user_data = cleaner.clean_user_data()`__
 
 #### Cleaning Card Data:
 
 The card data is cleaned and invalid entries are removed.
 
-__`data_cleaner = DataCleaning(card_df)`__
+pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf" 
 
-__`cleaned_card_df = data_cleaner.clean_card_data()`__
+__`card_data = data_extractor.retrieve_pdf_data(pdf_link)`__
+
+__`cleaner = DataCleaning(card_data)`__
+
+__`cleaned_card_data = cleaner.clean_card_data()`__
 
 #### Cleaning Store Data:
 
 The store data is cleaned to remove any invalid entries.
 
-__`data_cleaner = DataCleaning(stores_df)`__
+__`stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}'`__
 
-__`cleaned_store_df = data_cleaner.clean_store_data()`__
+__`headers = {"x-api-key": "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"}`__
+
+__`stores_details = []`__
+
+__`for store_number in range(0, 452):`__
+
+   __`stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)`__
+
+   __` stores_details.append(stores_data)`__
+
+__`stores_dataframe = pd.concat(stores_details, ignore_index=True)`__
+
+__`cleaner = DataCleaning(stores_dataframe)`__
+
+__`cleaned_store_data = cleaner.clean_store_data()`__
 
 #### Cleaning Products Data:
 
 Product weights are converted to kg and the data is cleaned.
 
-__`data_cleaner = DataCleaning(products_df)`__
+__`s3_address = "s3://data-handling-public/products.csv"`__
 
-__`products_df = data_cleaner.convert_product_weights(products_df)`__
+__`products_df = data_extractor.extract_from_s3(s3_address)`__
 
-__`cleaned_products_df = data_cleaner.clean_products_data(products_df)`__
+__`product_data = data_extractor.extract_from_s3(s3_address)`__
+
+__`cleaner = DataCleaning(product_data)`__
+
+__`cleaned_product_data = cleaner.clean_products_data(products_df)`__
+
+__`cleaned_product_data = cleaner.convert_product_weights(cleaned_product_data)`__
 
 #### Cleaning Date Details Data:
 
 The date details data is cleaned and invalid entries are removed.
 
-__`data_cleaner = DataCleaning(date_times_df)`__
+__`s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"`__
 
-__`cleaned_date_times_df = data_cleaner.clean_date_times_data()`__
+__`date_time_data = data_extractor.extract_from_s3(s3_address)`__
+
+__`cleaner = DataCleaning(date_time_data)`__
+
+__`cleaned_date_time_data = cleaner.clean_date_times_data()`__
 
 #### Cleaning Orders Data:
 
 The orders data is cleaned and unnecessary columns are dropped.
 
-__`data_cleaner = DataCleaning(orders_df)`__
+__`orders_data = data_extractor.read_rds_table("orders_table")`__
 
-__`cleaned_orders_df = data_cleaner.clean_orders_data()`__
+__`cleaner = DataCleaning(orders_data)`__
+
+__`cleaned_orders_data = cleaner.clean_orders_data()`__
 
 ---
 
