@@ -27,8 +27,8 @@ Follow these steps:
 1. Clone the repository to your local machine: __`git clone https://github.com/yourusername/multinational-retail-data-centralisation.git`__
 2. Navigate to the project directory: __`cd multinational-retail-data-centralisation/`__
 3. Install the required packages using: __`pip install`__
-4. Run the cleaning file: __`python database_cleaning.py`__
-5. Use the database_schema file to alter the tables in the local database.
+4. Run the cleaning file: __`python main.py`__
+5. Use the database_schema file to alter the tables in the database.
 
 ---
 
@@ -37,63 +37,72 @@ Follow these steps:
 - Extracts data from various sources (__databases, PDFs, APIs, S3__).
 - Cleans and preprocesses the data.
 - Uploads the cleaned data to a local database.
-- Creates a database schema using primary keys and foreign keys.
+- Sets the data type for various columns of the tables using SQL queries.
+- Allocates primary and foreign keys for columns.
 
 ---
 
 ### Data Extraction
 
+#### Extracting Orders Data:
+
+Data is extracted from the orders table in the database.
+
+__`orders_data = data_extractor.read_rds_table("orders_table")`__
+
 #### Extracting User Data:
 
 Data is extracted from the legacy_users table in the database.
 
-__`table_name = "legacy_users"`__
-
-__`legacy_users_df = data_extractor.read_rds_table(table_name)`__
+__`user_data = data_extractor.read_rds_table('legacy_users')`__
 
 #### Extracting Card Data:
 
 Data is extracted from a PDF file containing card details.
 
-__`pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf"`__
-
-__`card_df = data_extractor.retrieve_pdf_data(pdf_link)`__
+__`card_data = data_extractor.retrieve_pdf_data(pdf_link)`__
 
 #### Extracting Stores Data:
 
 Store data is retrieved from an API endpoint.
 
-__`api_endpoint = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores"`__
+__`for store_number in range(0, 452):`__
 
-__`api_headers = {'x-api-key': 'your_api_key_here'}`__
+&nbsp;&nbsp;&nbsp;&nbsp;__`stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)`__
 
-__`stores_df = data_extractor.retrieve_stores_data(api_endpoint, api_headers)`__
+&nbsp;&nbsp;&nbsp;&nbsp;__`stores_details.append(stores_data)`__
+
+__`stores_dataframe = pd.concat(stores_details, ignore_index=True)`__
 
 #### Extracting Products Data:
 
 Product data is extracted from a CSV file stored in an S3 bucket.
 
-__`s3_address = "s3://data-handling-public/products.csv"`__
+__`products_df = data_extractor.extract_from_s3(s3_address_products)`__
 
-__`products_df = data_extractor.extract_from_s3(s3_address)`__
+__`product_data = data_extractor.extract_from_s3(s3_address_products)`__
 
 #### Extracting Date Details Data:
 
 Date details are extracted from a JSON file stored in an S3 bucket.
 
-__`s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"`__
-
-__`date_times_df = data_extractor.extract_from_s3(s3_address)`__
+__`date_time_data = data_extractor.extract_from_s3(s3_address_dates)`__
 
 ---
 
 ### Data Cleaning
 
+#### Cleaning Orders Data:
+
+The orders data is cleaned and unnecessary columns are dropped.
+
+__`cleaner = DataCleaning(orders_data)`__
+
+__`cleaned_orders_data = cleaner.clean_orders_data()`__
+
 #### Cleaning User Data:
 
 The user data is cleaned.
-
-__`user_data = data_extractor.read_rds_table('legacy_users')`__
 
 __`cleaner = DataCleaning(user_data)`__
 
@@ -103,10 +112,6 @@ __`cleaned_user_data = cleaner.clean_user_data()`__
 
 The card data is cleaned and invalid entries are removed.
 
-__`pdf_link = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf"`__
-
-__`card_data = data_extractor.retrieve_pdf_data(pdf_link)`__
-
 __`cleaner = DataCleaning(card_data)`__
 
 __`cleaned_card_data = cleaner.clean_card_data()`__
@@ -115,20 +120,6 @@ __`cleaned_card_data = cleaner.clean_card_data()`__
 
 The store data is cleaned to remove any invalid entries.
 
-__`stores_endpoint = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/{store_number}'`__
-
-__`headers = {"x-api-key": "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"}`__
-
-__`stores_details = []`__
-
-__`for store_number in range(0, 452):`__
-
-&nbsp;&nbsp;&nbsp;&nbsp;__`stores_data = data_extractor.retrieve_store_details(str(store_number), stores_endpoint, headers)`__
-
-&nbsp;&nbsp;&nbsp;&nbsp;__` stores_details.append(stores_data)`__
-
-__`stores_dataframe = pd.concat(stores_details, ignore_index=True)`__
-
 __`cleaner = DataCleaning(stores_dataframe)`__
 
 __`cleaned_store_data = cleaner.clean_store_data()`__
@@ -136,12 +127,6 @@ __`cleaned_store_data = cleaner.clean_store_data()`__
 #### Cleaning Products Data:
 
 Product weights are converted to kg and the data is cleaned.
-
-__`s3_address = "s3://data-handling-public/products.csv"`__
-
-__`products_df = data_extractor.extract_from_s3(s3_address)`__
-
-__`product_data = data_extractor.extract_from_s3(s3_address)`__
 
 __`cleaner = DataCleaning(product_data)`__
 
@@ -153,29 +138,17 @@ __`cleaned_product_data = cleaner.convert_product_weights(cleaned_product_data)`
 
 The date details data is cleaned and invalid entries are removed.
 
-__`s3_address = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"`__
-
-__`date_time_data = data_extractor.extract_from_s3(s3_address)`__
-
 __`cleaner = DataCleaning(date_time_data)`__
 
 __`cleaned_date_time_data = cleaner.clean_date_times_data()`__
-
-#### Cleaning Orders Data:
-
-The orders data is cleaned and unnecessary columns are dropped.
-
-__`orders_data = data_extractor.read_rds_table("orders_table")`__
-
-__`cleaner = DataCleaning(orders_data)`__
-
-__`cleaned_orders_data = cleaner.clean_orders_data()`__
 
 ---
 
 ### Data Uploading:
 
 Uploads the cleaned data to the local database.
+
+__`local_db_connector.upload_to_db(cleaned_orders_df, "orders_table", db_type='local')`__
 
 __`local_db_connector.upload_to_db(cleaned_users_df, "dim_users", db_type='local')`__
 
@@ -186,8 +159,6 @@ __`local_db_connector.upload_to_db(cleaned_store_df, "dim_store_details", db_typ
 __`local_db_connector.upload_to_db(cleaned_products_df, "dim_products", db_type='local')`__
 
 __`local_db_connector.upload_to_db(cleaned_date_times_df, "dim_date_times", db_type='local')`__
-
-__`local_db_connector.upload_to_db(cleaned_orders_df, "orders_table", db_type='local')`__
 
 ---
 
