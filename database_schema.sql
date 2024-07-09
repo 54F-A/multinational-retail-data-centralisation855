@@ -45,10 +45,10 @@ ALTER TABLE orders_table
 ALTER TABLE dim_users
     ALTER COLUMN first_name SET DATA TYPE VARCHAR(225),
     ALTER COLUMN last_name SET DATA TYPE VARCHAR(225),
-    ALTER COLUMN date_of_birth SET DATA TYPE DATE,
+    ALTER COLUMN date_of_birth SET DATA TYPE DATE USING date_of_birth::date,
     ALTER COLUMN country_code SET DATA TYPE VARCHAR(2),
     ALTER COLUMN user_uuid SET DATA TYPE UUID USING user_uuid::uuid,
-    ALTER COLUMN join_date SET DATA TYPE DATE;
+    ALTER COLUMN join_date SET DATA TYPE DATE USING join_date::date;
 
 -- Update the dim_store_details table:
 
