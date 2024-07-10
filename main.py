@@ -5,6 +5,7 @@ import database_utils
 import pandas as pd
 import yaml
 
+
 def config(config_file):
     with open(config_file, 'r') as f:
         config = yaml.safe_load(f)
